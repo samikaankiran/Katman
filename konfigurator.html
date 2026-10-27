@@ -93,6 +93,7 @@ form input:hover,form input:focus{border-color:#000000 !important}
 .k-sr{--p:1;clip-path:inset(calc((1 - var(--p)) * 100%) 0 0 0 round 5px)}
 .k-sr.k-done{clip-path:none}
 .k-sr > *{translate:0 calc((1 - var(--p)) * 18%);scale:calc(1 + (1 - var(--p)) * 0.08)}
+@media (hover: none){.k-sr{transition:clip-path .4s cubic-bezier(.2,.7,.2,1)}.k-sr > :not(.k-track),.k-sr > .k-track > img{transition:translate .4s cubic-bezier(.2,.7,.2,1),scale .4s cubic-bezier(.2,.7,.2,1)}}
 @media (prefers-reduced-motion: reduce){.k-sr{clip-path:none}.k-sr > *{translate:none;scale:none}}
 .k-gitem{transition:box-shadow 300ms ease}
 .k-gitem:hover,.k-gitem:focus-visible{box-shadow:0 24px 48px -16px rgba(0,0,0,.22)}
@@ -443,10 +444,34 @@ class Component extends DCLogic {
     if (!els.length) return;
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) { els.forEach((el) => { el.style.setProperty('--p', '1'); el.classList.add('k-done'); }); return; }
+    // ilk ekranda görünen görseller sayfa açılırken zamanla yumuşakça açılır (görsel yüklenince başlar), sonra açık kalır
+    const vh0 = window.innerHeight || document.documentElement.clientHeight;
+    const intro = new Set(els.filter((el) => { const r = el.getBoundingClientRect(); return r.top < vh0 * 0.98 && r.bottom > 0; }));
+    intro.forEach((el) => {
+      el.style.setProperty('--p', '0');
+      const img = el.querySelector('img');
+      let started = false;
+      const go = () => {
+        if (started) return; started = true;
+        const t0 = performance.now(), D = 1100;
+        const step = (t) => {
+          const k = Math.min(1, Math.max(0, (t - t0) / D)), e = 1 - Math.pow(1 - k, 3);
+          el.style.setProperty('--p', e.toFixed(4));
+          if (k < 1) requestAnimationFrame(step); else el.classList.add('k-done');
+        };
+        requestAnimationFrame(step);
+      };
+      if (img && !(img.complete && img.naturalWidth)) {
+        img.addEventListener('load', () => { (img.decode ? img.decode().catch(() => {}) : Promise.resolve()).then(go); }, { once: true });
+        img.addEventListener('error', go, { once: true });
+        setTimeout(go, 2500);
+      } else go();
+    });
     const upd = () => {
       this._kraf = 0;
       const vh = window.innerHeight || document.documentElement.clientHeight;
       els.forEach((el) => {
+        if (intro.has(el)) return;
         const r = el.getBoundingClientRect();
         const span = Math.min(r.height, vh) * 0.85 + vh * 0.1;
         const p = Math.max(0, Math.min(1, (vh - r.top) / span));
