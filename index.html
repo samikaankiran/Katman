@@ -184,7 +184,7 @@ h2[style*="font-size: 40px"]{font-size:30px !important;line-height:34px !importa
   </div>
 </section>
 <section aria-label="Galeri" aria-roledescription="carousel" onMouseEnter="{{pause}}" onMouseLeave="{{resume}}" style="background: #000000; color: #eeece9; border-bottom: 1px solid #323232;">
-  <div class="k-sr k-full" style="position: relative; overflow: hidden; height: clamp(440px, 52vw, 760px);">
+  <div class="k-full" style="position: relative; overflow: hidden; height: clamp(440px, 52vw, 760px);">
     <div class="k-track" style="display: flex; height: 100%; transform: translateX({{offset}});">
       <sc-for list="{{slides}}" as="s" hint-placeholder-count="6">
         <img class="k-full" src="{{s.src}}" alt="{{s.alt}}" aria-hidden="{{s.hidden}}" style="flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; display: block;">
