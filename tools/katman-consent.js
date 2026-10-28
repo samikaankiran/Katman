@@ -1,21 +1,63 @@
 /* KATMAN · çerez onayı + Google Analytics 4 (gtag.js)
  * - Onay verilmeden gtag.js yüklenmez, Google'a istek gitmez, çerez oluşmaz.
  * - Google Consent Mode v2 varsayılanları "denied"; kabulde yalnızca analytics_storage "granted" olur.
- * - Reklam depolaması / reklam sinyalleri hiçbir durumda açılmaz.
+ *   Reklam depolaması / reklam sinyalleri hiçbir durumda açılmaz.
+ * - Gönderim kalkanı: onay yoksa ya da geri çekildiyse, kuyrukta bekleyen etkinlikler dahil
+ *   Google Analytics'e giden her istek (sendBeacon, fetch, XHR, görsel) tarayıcıda engellenir.
+ * - Ölçüm kimliği yalnızca katmanaudio.com'da kullanılır. Önizleme / yerel adreslerde ve canlıda ?ga_test=1 ile
+ *   "test modu" çalışır: hiçbir veri Google'a gitmez, etkinlikler konsola ve window.__katmanEvents'e yazılır.
+ *   GA_ID_TEST doldurulursa test modu ayrı bir GA4 test mülküne (debug_mode ile) gönderir.
  * - Tercih tarayıcıda (localStorage) saklanır; footer'daki "Çerez Tercihleri" bağlantısı bandı yeniden açar.
- * - window.katmanTrack(ad, parametreler): yalnızca onay varsa GA4'e etkinlik gönderir; kişisel veri gönderilmez.
- * Derleme (tools/build.py) bu dosyayı assets/katman-consent-<özet>.js olarak her sayfaya bir kez ekler.
+ * - window.katmanTrack(ad, parametreler): yalnızca onay varsa etkinlik gönderir; kişisel veri gönderilmez.
+ * Derleme (tools/build.py) bu dosyayı assets/ altına içerik özetli adla kopyalar ve her sayfaya bir kez ekler.
  */
 (function () {
   'use strict';
   if (window.__katmanConsent) return; // aynı sayfada iki kez çalışmasın
   window.__katmanConsent = true;
 
-  var GA_ID = 'G-25K0M2TFDG';
+  var GA_ID_LIVE = 'G-25K0M2TFDG'; // yalnızca katmanaudio.com
+  var GA_ID_TEST = '';             // ayrı GA4 test mülkü (boşsa test modunda hiçbir şey gönderilmez)
   var KEY = 'katman_cerez_tercihi';
   var VER = 1;
+
   var PROD = /(^|\.)katmanaudio\.com$/.test(location.hostname);
-  var DEBUG = !PROD || /[?&]ga_debug=1\b/.test(location.search);
+  var TESTQ = /[?&]ga_test=1\b/.test(location.search);
+  var MODE = PROD && !TESTQ ? 'live' : (GA_ID_TEST ? 'test' : 'dry');
+  var GA_ID = MODE === 'live' ? GA_ID_LIVE : (MODE === 'test' ? GA_ID_TEST : '');
+
+  var choice = readChoice();
+
+  // ---- Gönderim kalkanı (gtag.js'den önce kurulur) ----
+  var GA_URL = /^https?:\/\/([^/?#]*\.)?(google-analytics\.com|analytics\.google\.com|doubleclick\.net)(\/|$)|^https?:\/\/([^/?#]*\.)?googletagmanager\.com\/(?!gtag\/js)/i;
+  function blocked(u) {
+    try { u = String(u && u.url ? u.url : u || ''); } catch (e) { return false; }
+    if (!GA_URL.test(u)) return false;
+    if (choice !== 'granted' || !GA_ID) return true;
+    var m = /[?&]tid=([^&#]+)/.exec(u);
+    return !!(m && decodeURIComponent(m[1]) !== GA_ID);
+  }
+  try {
+    if (navigator.sendBeacon) {
+      var sb = navigator.sendBeacon;
+      navigator.sendBeacon = function (u, d) { return blocked(u) ? true : sb.call(navigator, u, d); };
+    }
+    if (window.fetch) {
+      var f0 = window.fetch;
+      window.fetch = function (input) {
+        if (blocked(input)) return Promise.resolve(typeof Response === 'function' ? new Response(null, { status: 204 }) : undefined);
+        return f0.apply(this, arguments);
+      };
+    }
+    var xo = XMLHttpRequest.prototype.open, xs = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function (m, u) { this.__kU = u; return xo.apply(this, arguments); };
+    XMLHttpRequest.prototype.send = function () { if (blocked(this.__kU)) { try { this.abort(); } catch (e) {} return; } return xs.apply(this, arguments); };
+    var d = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+    if (d && d.set) Object.defineProperty(HTMLImageElement.prototype, 'src', {
+      configurable: true, enumerable: d.enumerable, get: d.get,
+      set: function (v) { if (blocked(v)) return; d.set.call(this, v); }
+    });
+  } catch (e) {}
 
   window.dataLayer = window.dataLayer || [];
   function gtag() { window.dataLayer.push(arguments); }
@@ -40,17 +82,23 @@
     try { localStorage.setItem(KEY, JSON.stringify({ v: VER, a: a, t: new Date().toISOString().slice(0, 10) })); } catch (e) {}
   }
 
-  var choice = readChoice();
-  var loaded = false;
+  // test modu: hiçbir şey gönderilmez, konsola ve window.__katmanEvents'e yazılır
+  window.__katmanEvents = [];
+  function dryLog(name, params) {
+    window.__katmanEvents.push({ name: name, params: params || {}, t: Date.now() });
+    try { console.info('[KATMAN GA4 · test modu, gönderilmedi]', name, params || {}); } catch (e) {}
+  }
 
+  var loaded = false;
   function loadGA() {
+    if (MODE === 'dry') { if (!loaded) { loaded = true; dryLog('page_view', { page_location: location.pathname }); } return; }
     window['ga-disable-' + GA_ID] = false;
     gtag('consent', 'update', { analytics_storage: 'granted' });
     if (loaded) return;
     loaded = true;
     gtag('js', new Date());
     var cfg = { allow_google_signals: false, allow_ad_personalization_signals: false };
-    if (DEBUG) cfg.debug_mode = true;
+    if (MODE === 'test') cfg.debug_mode = true;
     gtag('config', GA_ID, cfg); // sayfa görüntülemesini (page_view) bir kez gönderir
     if (!document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) {
       var s = document.createElement('script');
@@ -66,20 +114,22 @@
     var host = location.hostname, parts = host.split('.'), domains = ['', host];
     for (var i = 0; i < parts.length - 1; i++) domains.push('.' + parts.slice(i).join('.'));
     names.forEach(function (n) {
-      domains.forEach(function (d) {
-        document.cookie = n + '=; Max-Age=0; path=/' + (d ? '; domain=' + d : '');
+      domains.forEach(function (dm) {
+        document.cookie = n + '=; Max-Age=0; path=/' + (dm ? '; domain=' + dm : '');
       });
     });
   }
 
   function deny() {
-    gtag('consent', 'update', { analytics_storage: 'denied' });
-    window['ga-disable-' + GA_ID] = true;
+    if (GA_ID) {
+      gtag('consent', 'update', { analytics_storage: 'denied' });
+      window['ga-disable-' + GA_ID] = true;
+    }
     clearGACookies();
   }
 
   function setChoice(a) {
-    choice = a;
+    choice = a; // kalkan bu andan itibaren bekleyen istekleri de engeller
     saveChoice(a);
     if (a === 'granted') loadGA(); else deny();
     hideBanner();
@@ -93,6 +143,7 @@
       var v = params[k];
       p[k] = typeof v === 'string' ? v.slice(0, 100) : v;
     }
+    if (MODE === 'dry') { dryLog(name, p); return true; }
     gtag('event', name, p);
     return true;
   };

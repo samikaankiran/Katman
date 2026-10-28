@@ -5,7 +5,7 @@
 <title>İletişim ve Özel Ölçü Talebi | KATMAN</title>
 <link rel="preload" href="/assets/fonts/66096ca68e67965985d268e1ce59cb5b.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/97231e0de623b2d24619c38cee435b7d.woff2" as="font" type="font/woff2" crossorigin>
-<script>window.__resources={}</script><script src="/assets/katman-consent-f4cd82fa20.js" defer></script><script src="/assets/dc-runtime-c17a53c658.js"></script>
+<script>window.__resources={}</script><script src="/assets/katman-consent-eea527b2f9.js" defer></script><script src="/assets/dc-runtime-c17a53c658.js"></script>
 <!-- SEO -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Hi-Fi rack ve sehpa sorularınız, teklif ve özel ölçü talepleriniz için KATMAN&#x27;a ulaşın: info@katmanaudio.com · 0533 345 95 64.">
@@ -309,6 +309,8 @@ function kSend(data) {
 }
 const CF_FIELDS = ['ad', 'eposta', 'telefon', 'adet', 'genislik', 'derinlik', 'aralik', 'kvkk'];
 const CF_NUM = /^\d+([.,]\d+)?$/;
+// GA4 ölçümü: yalnızca çerez onayı varsa gönderilir; ad, e-posta, telefon, ölçüler veya mesaj gönderilmez.
+function kT(name, params) { try { if (window.katmanTrack) window.katmanTrack(name, params); } catch (e) {} }
 class Component extends DCLogic {
   componentDidMount() { this.kReveal(); this.kScroll(); }
   componentWillUnmount() { if (this._kmo) this._kmo.disconnect(); if (this._kio) this._kio.disconnect(); if (this._kon) { window.removeEventListener('scroll', this._kon); window.removeEventListener('resize', this._kon); } if (this._kraf) cancelAnimationFrame(this._kraf); }
@@ -440,7 +442,11 @@ class Component extends DCLogic {
       type: 'ozel-olcu', name: v.ad, email: v.eposta, phone: v.telefon,
       shelfCount: Number(v.adet), widthMm: num(v.genislik), depthMm: num(v.derinlik),
       spacingMm: v.aralik ? v.aralik.split('/').map((x) => num(x.trim())) : null, kvkk: true, website: this.cfHp || ''
-    }).then((ok) => this.setState({ cfStatus: ok ? 'success' : 'error' }));
+    }).then((ok) => {
+      // özel ölçü talebi yalnızca sunucu başarılı yanıt verdiğinde ölçülür (bir kez)
+      if (ok && !this._kLead) { this._kLead = true; kT('generate_lead', { form_type: 'ozel_olcu' }); }
+      this.setState({ cfStatus: ok ? 'success' : 'error' });
+    });
   }
   cfChange(e) {
     const st = this.state || {};

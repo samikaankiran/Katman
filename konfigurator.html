@@ -5,7 +5,7 @@
 <title>Kendi Hi-Fi Rack Sisteminizi Tasarlayın | KATMAN</title>
 <link rel="preload" href="/assets/fonts/66096ca68e67965985d268e1ce59cb5b.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/97231e0de623b2d24619c38cee435b7d.woff2" as="font" type="font/woff2" crossorigin>
-<script>window.__resources={}</script><script src="/assets/katman-consent-f4cd82fa20.js" defer></script><script src="/assets/dc-runtime-c17a53c658.js"></script>
+<script>window.__resources={}</script><script src="/assets/katman-consent-eea527b2f9.js" defer></script><script src="/assets/dc-runtime-c17a53c658.js"></script>
 <!-- SEO -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="KATMAN konfigüratörü ile Hi-Fi rack sisteminizi kişiselleştirin. Raf sayısını, yükseklikleri, ahşap yüzeyleri, metal renklerini ve ayak detaylarını seçin.">
@@ -465,14 +465,21 @@ class Component extends DCLogic {
       const kSet = this.setState;
       this.setState = function (p, cb) { try { this.kTrackPatch(p); } catch (e) {} return kSet.call(this, p, cb); };
     }
-    // yapılandırma tamamlandı: kullanıcı teklif formuna ilk kez geçtiğinde (sayfa başına bir kez)
-    this._kFocus = (e) => {
-      const f = e.target && e.target.closest ? e.target.closest('form') : null;
-      if (!f || !f.elements || !f.elements.namedItem('eposta') || this._kDone) return;
-      this._kDone = true;
-      kT('configuration_completed', kCfgParams(this._kcur));
+    // teklif formu görüntülendi: form ekranın en az yarısı kadar göründüğünde (sayfa başına bir kez)
+    this._kFormView = () => {
+      if (this._kFormSeen || typeof IntersectionObserver === 'undefined') return;
+      const el = document.querySelector('input[name="eposta"]');
+      const f = el && el.form;
+      if (!f) { setTimeout(this._kFormView, 500); return; }
+      this._kio = new IntersectionObserver((en) => {
+        if (this._kFormSeen || !en.some((x) => x.isIntersecting)) return;
+        this._kFormSeen = true;
+        kT('quote_form_view', { shelf_count: this._kcur ? this._kcur.tiers : undefined });
+        this._kio.disconnect();
+      }, { threshold: 0.5 });
+      this._kio.observe(f);
     };
-    document.addEventListener('focusin', this._kFocus);
+    this._kFormView();
   }
   kTrackPatch(p) {
     const c = this._kcur;
@@ -480,12 +487,13 @@ class Component extends DCLogic {
     const ks = Object.keys(p);
     const isCfg = ks.some((k) => k in K_MAT || k === 'tiers' || k === 'gaps' || k === 'topShelf');
     const isView = ks.some((k) => K_VIEW.indexOf(k) >= 0);
+    if ('topShelf' in p && !!p.topShelf !== c.topShelf) this._kCustom = true;
     if ((isCfg || isView) && !this._kStarted) { this._kStarted = true; kT('configurator_start', { first_action: isCfg ? 'secim' : 'goruntu' }); }
-    if ('tiers' in p && p.tiers !== c.tiers) kT('shelf_count_selected', { shelf_count: p.tiers });
-    if (Array.isArray(p.gaps)) p.gaps.forEach((g, i) => { if (g !== c.gaps[i]) kT('shelf_height_selected', { shelf_level: i + 2, shelf_gap_mm: g, shelf_count: c.tiers }); });
-    Object.keys(K_MAT).forEach((k) => { if (k in p && p[k] !== c[k]) kT('material_selected', { material_type: K_MAT[k], material_value: String(p[k]) }); });
+    if ('tiers' in p && p.tiers !== c.tiers) { this._kCustom = true; kT('shelf_count_selected', { shelf_count: p.tiers }); }
+    if (Array.isArray(p.gaps)) p.gaps.forEach((g, i) => { if (g !== c.gaps[i]) (this._kCustom = true) && kT('shelf_height_selected', { shelf_level: i + 2, shelf_gap_mm: g, shelf_count: c.tiers }); });
+    Object.keys(K_MAT).forEach((k) => { if (k in p && p[k] !== c[k]) (this._kCustom = true) && kT('material_selected', { material_type: K_MAT[k], material_value: String(p[k]) }); });
   }
-  componentWillUnmount() { if (this._kFocus) document.removeEventListener('focusin', this._kFocus); if (this._kon) { window.removeEventListener('scroll', this._kon); window.removeEventListener('resize', this._kon); } if (this._kraf) cancelAnimationFrame(this._kraf); }
+  componentWillUnmount() { if (this._kio) this._kio.disconnect(); if (this._kon) { window.removeEventListener('scroll', this._kon); window.removeEventListener('resize', this._kon); } if (this._kraf) cancelAnimationFrame(this._kraf); }
   kScroll() {
     // galeri görselleri kaydırmaya bağlı açılır; tamamen açılınca maske kalkar (hover gölgesi kesilmesin)
     const els = Array.prototype.slice.call(document.querySelectorAll('.k-sr'));
@@ -555,6 +563,8 @@ class Component extends DCLogic {
     const g = (n) => { const el = f && f.elements ? f.elements.namedItem(n) : null; return el ? String(el.value || '').trim() : ''; };
     const cfg = this.qRead();
     this.qData = { name: g('ad'), email: g('eposta'), city: g('sehir'), phone: g('telefon'), cfg };
+    // yapılandırma tamamlandı: kullanıcı geçerli formla teklif istediği an yapılandırma kesinleşir (sayfa başına bir kez)
+    if (!this._kDone) { this._kDone = true; kT('configuration_completed', Object.assign({ customized: this._kCustom ? 'evet' : 'hayir' }, kCfgParams(this._kcur))); }
     this.setState({ qStatus: 'loading' });
     kSend({ type: 'teklif', name: this.qData.name, email: this.qData.email, city: this.qData.city, phone: this.qData.phone,
       model: cfg.model, code: cfg.code, summary: cfg.rows, kvkk: true, website: g('website') })
