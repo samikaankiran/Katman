@@ -26,7 +26,7 @@ PAGES = [  # canvas dosyası, çıktı dosyası, adres
     ('Kvkk', 'kvkk', '/kvkk'),
 ]
 ROUTE = {src: url for src, _, url in PAGES}
-NAV = [('Ana Sayfa', '/'), ('Ürünler', '/urunler'), ("Kendi Katman'ını Oluştur", '/konfigurator'), ('Teknoloji', '/teknoloji'),
+NAV = [('Ana Sayfa', '/'), ('Ürünler', '/urunler'), ("Kendi KATMAN'ını Oluştur", '/konfigurator'), ('Teknoloji', '/teknoloji'),
        ('Galeri', '/galeri'), ('Hakkımızda', '/hakkimizda'), ('İletişim', '/iletisim')]
 
 if os.path.exists(OUT):
@@ -92,6 +92,11 @@ for w in ('400', '500'):
 PLEX_CSS = ('<style>@font-face{font-family:"IBM Plex Mono";src:url("/assets/fonts/IBMPlexMono-400.woff2") format("woff2");font-weight:400;font-display:swap}'
             '@font-face{font-family:"IBM Plex Mono";src:url("/assets/fonts/IBMPlexMono-500.woff2") format("woff2");font-weight:500 700;font-display:swap}</style>')
 
+TPL_FIX = ('<script>(function(){var x=document.querySelector("x-dc");if(!x)return;'
+           'var d=Object.getOwnPropertyDescriptor(Element.prototype,"innerHTML");'
+           'Object.defineProperty(x,"innerHTML",{configurable:true,get:function(){return d.get.call(this)'
+           '.replace(/ data-k-(src|href|d|transform)="\\{\\{/g,\' $1="{{\')},set:function(v){d.set.call(this,v)}})})();</script>')
+
 link_re = re.compile(r'(?<![\w-])(Main|Urunler|Product|Teknoloji|Galeri|Hakkimizda|Iletisim|Kvkk)\.dc\.html')
 
 for src, out, url in PAGES:
@@ -105,7 +110,13 @@ for src, out, url in PAGES:
     h1 = re.sub(r'\s+', ' ', h1).strip()
     desc = re.search(r'<meta name="description" content="([^"]*)"', s).group(1)
     nav = ' · '.join(f'<a href="{u}">{n}</a>' for n, u in NAV)
-    s = s.replace('<body>', f'<body>\n<noscript><div style="max-width:720px;margin:48px auto;padding:0 24px;font-family:sans-serif"><h1>{h1}</h1><p>{desc}</p><p>{nav}</p><p>Bize <a href="mailto:info@katmanaudio.com">info@katmanaudio.com</a> adresinden ulaşabilirsiniz.</p></div></noscript>', 1)
+    s = s.replace('<body>', f'<body>\n<noscript><div style="max-width:720px;margin:48px auto;padding:0 24px;font-family:sans-serif"><p><strong>{h1}</strong></p><p>{desc}</p><p>{nav}</p><p>Bize <a href="mailto:info@katmanaudio.com">info@katmanaudio.com</a> adresinden ulaşabilirsiniz.</p></div></noscript>', 1)
+    # Şablon değerleri: <x-dc> içindeki src/href/d/transform="{{…}}" tarayıcı ayrıştırırken istenip 404 üretmesin.
+    # Öznitelik adı data-k-src/data-k-href yapılır; motor şablonu okurken (x-dc.innerHTML) asıl adlar geri verilir.
+    i0 = s.index('<x-dc>'); i1 = s.index('</x-dc>')
+    blk = re.sub(r'(\s)(src|href|d|transform)="(\{\{[^"]*\}\})"', r'\1data-k-\2="\3"', s[i0:i1])
+    s = s[:i0] + blk + '</x-dc>' + TPL_FIX + s[i1 + len('</x-dc>'):]
+    assert not re.search(r'(?<![\w-])(?:src|href|d|transform)="\{\{', s), src
     s, n = re.subn(r'<link rel="stylesheet" href="https://fonts\.googleapis\.com/css2\?family=IBM\+Plex\+Mono[^"]*">', PLEX_CSS, s)
     s = re.sub(r'/_blob/([0-9a-f]{32})', lambda m: blob_url(m.group(1)), s)
     s = link_re.sub(lambda m: ROUTE[m.group(1)], s)
