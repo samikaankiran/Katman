@@ -4,9 +4,13 @@
  *   Reklam depolaması / reklam sinyalleri hiçbir durumda açılmaz.
  * - Gönderim kalkanı: onay yoksa ya da geri çekildiyse, kuyrukta bekleyen etkinlikler dahil
  *   Google Analytics'e giden her istek (sendBeacon, fetch, XHR, görsel) tarayıcıda engellenir.
- * - Ölçüm kimliği yalnızca katmanaudio.com'da kullanılır. Önizleme / yerel adreslerde ve canlıda ?ga_test=1 ile
- *   "test modu" çalışır: hiçbir veri Google'a gitmez, etkinlikler konsola ve window.__katmanEvents'e yazılır.
- *   GA_ID_TEST doldurulursa test modu ayrı bir GA4 test mülküne (debug_mode ile) gönderir.
+ * - Mod adrese göre seçilir:
+ *     live    katmanaudio.com                         → G-25K0M2TFDG, debug yok
+ *     preview KATMAN'ın Vercel önizleme adresleri     → G-25K0M2TFDG, debug_mode açık (GA4 DebugView'da görünür)
+ *             (katman-git-<dal>-katman3.vercel.app, katman-<id>-katman3.vercel.app)
+ *     dry     yerel adresler, diğer alan adları, ?ga_test=1 → hiçbir veri Google'a gitmez;
+ *             etkinlikler konsola ve window.__katmanEvents'e yazılır.
+ *   GA_ID_TEST doldurulursa önizleme ayrı bir GA4 test mülküne gönderir.
  * - Tercih tarayıcıda (localStorage) saklanır; footer'daki "Çerez Tercihleri" bağlantısı bandı yeniden açar.
  * - window.katmanTrack(ad, parametreler): yalnızca onay varsa etkinlik gönderir; kişisel veri gönderilmez.
  * Derleme (tools/build.py) bu dosyayı assets/ altına içerik özetli adla kopyalar ve her sayfaya bir kez ekler.
@@ -21,10 +25,13 @@
   var KEY = 'katman_cerez_tercihi';
   var VER = 1;
 
-  var PROD = /(^|\.)katmanaudio\.com$/.test(location.hostname);
+  var HOST = location.hostname;
+  var PROD = /(^|\.)katmanaudio\.com$/.test(HOST);
+  var PREVIEW = /^katman-(git-[a-z0-9-]+|[a-z0-9]+)-katman3\.vercel\.app$/.test(HOST);
   var TESTQ = /[?&]ga_test=1\b/.test(location.search);
-  var MODE = PROD && !TESTQ ? 'live' : (GA_ID_TEST ? 'test' : 'dry');
-  var GA_ID = MODE === 'live' ? GA_ID_LIVE : (MODE === 'test' ? GA_ID_TEST : '');
+  var MODE = TESTQ ? 'dry' : (PROD ? 'live' : (PREVIEW ? 'preview' : 'dry'));
+  var GA_ID = MODE === 'live' ? GA_ID_LIVE : (MODE === 'preview' ? (GA_ID_TEST || GA_ID_LIVE) : '');
+  window.__katmanGA = { mode: MODE, id: GA_ID || null, debug: MODE === 'preview' };
 
   var choice = readChoice();
 
@@ -98,7 +105,7 @@
     loaded = true;
     gtag('js', new Date());
     var cfg = { allow_google_signals: false, allow_ad_personalization_signals: false };
-    if (MODE === 'test') cfg.debug_mode = true;
+    if (MODE === 'preview') cfg.debug_mode = true; // GA4 DebugView
     gtag('config', GA_ID, cfg); // sayfa görüntülemesini (page_view) bir kez gönderir
     if (!document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) {
       var s = document.createElement('script');
