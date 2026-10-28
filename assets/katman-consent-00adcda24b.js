@@ -186,7 +186,7 @@
           '<p>İzin verirseniz, sitenin nasıl kullanıldığını anlamak için Google Analytics analitik çerezlerini kullanırız. ' +
           'Reklam çerezi kullanmayız; adınız, e-posta adresiniz veya mesajınız gibi form bilgileri analitiğe gönderilmez. ' +
           'Tercihinizi sayfanın altındaki “Çerez Tercihleri” bağlantısından istediğiniz zaman değiştirebilirsiniz. ' +
-          'Ayrıntılar: <a href="/kvkk">KVKK Aydınlatma Metni</a>.</p>' +
+          'Ayrıntılar: <a href="/cerez-politikasi">Çerez Politikası</a>.</p>' +
           '<span class="k-ck-cur" hidden></span>' +
         '</div>' +
         '<div class="k-ck-bt">' +

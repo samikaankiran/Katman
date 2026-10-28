@@ -24,6 +24,7 @@ PAGES = [  # canvas dosyası, çıktı dosyası, adres
     ('Hakkimizda', 'hakkimizda', '/hakkimizda'),
     ('Iletisim', 'iletisim', '/iletisim'),
     ('Kvkk', 'kvkk', '/kvkk'),
+    ('CerezPolitikasi', 'cerez-politikasi', '/cerez-politikasi'),
 ]
 ROUTE = {src: url for src, _, url in PAGES}
 NAV = [('Ana Sayfa', '/'), ('Ürünler', '/urunler'), ("Kendi KATMAN'ını Oluştur", '/konfigurator'), ('Teknoloji', '/teknoloji'),
@@ -101,7 +102,7 @@ TPL_FIX = ('<script>(function(){var x=document.querySelector("x-dc");if(!x)retur
            'Object.defineProperty(x,"innerHTML",{configurable:true,get:function(){return d.get.call(this)'
            '.replace(/ data-k-(src|href|d|transform)="\\{\\{/g,\' $1="{{\')},set:function(v){d.set.call(this,v)}})})();</script>')
 
-link_re = re.compile(r'(?<![\w-])(Main|Urunler|Product|Teknoloji|Galeri|Hakkimizda|Iletisim|Kvkk)\.dc\.html')
+link_re = re.compile(r'(?<![\w-])(Main|Urunler|Product|Teknoloji|Galeri|Hakkimizda|Iletisim|Kvkk|CerezPolitikasi)\.dc\.html')
 
 for src, out, url in PAGES:
     s = open(os.path.join(PROJECT, src + '.dc.html'), encoding='utf-8').read()
@@ -126,6 +127,7 @@ for src, out, url in PAGES:
     s = link_re.sub(lambda m: ROUTE[m.group(1)], s)
     s = s.replace("font-weight:400}", "font-weight:400;font-display:swap}").replace("font-weight:500}", "font-weight:500;font-display:swap}").replace("font-weight:700}", "font-weight:700;font-display:swap}")
     assert '/_blob/' not in s and '.dc.html' not in s, src
+    if 'k-hukuk-notu' in s: print('  UYARI:', src, '— hukuki değerlendirme notları sayfada (canlıya almadan önce kaldırılmalı)')
     assert s.count('googletagmanager.com') == 0 and s.count('katman-consent-') == 1, src
     open(os.path.join(OUT, out + '.html'), 'w', encoding='utf-8').write(s)
     print('sayfa', out + '.html', '←', src + '.dc.html')
