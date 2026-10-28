@@ -5,7 +5,7 @@
 <title>Kendi Hi-Fi Rack Sisteminizi Tasarlayın | KATMAN</title>
 <link rel="preload" href="/assets/fonts/66096ca68e67965985d268e1ce59cb5b.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/97231e0de623b2d24619c38cee435b7d.woff2" as="font" type="font/woff2" crossorigin>
-<script>window.__resources={}</script><script src="/assets/dc-runtime-c17a53c658.js"></script>
+<script>window.__resources={}</script><script src="/assets/katman-consent-f4cd82fa20.js" defer></script><script src="/assets/dc-runtime-c17a53c658.js"></script>
 <!-- SEO -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="KATMAN konfigüratörü ile Hi-Fi rack sisteminizi kişiselleştirin. Raf sayısını, yükseklikleri, ahşap yüzeyleri, metal renklerini ve ayak detaylarını seçin.">
@@ -426,7 +426,7 @@ div:has(> .k-vctl){padding-bottom:16px !important}
         </div>
       </div>
     </div>
-    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; padding-top: 24px; border-top: 1px solid #323232; font-size: 12px; line-height: 1.33; font-weight: 500; letter-spacing: 0.96px; font-style: normal; font-family: &quot;IBM Plex Mono&quot;, ui-monospace, Menlo, monospace"><span class="spec" style="letter-spacing: 0.96px"><span style="font-family: &quot;IBM Plex Mono&quot;, ui-monospace, Menlo, monospace; font-size: 12px; letter-spacing: 0.96px">© 2026 KATMAN. All rights reserved. A <a class="k-wa" href="https://www.workattack.com" target="_blank" rel="noopener">Workattack</a> Venture · <a href="/kvkk" style="color: #eeece9;">KVKK Aydınlatma Metni</a></span></span><span class="spec" style="text-align: right"><span style="letter-spacing: 0.96px">Built in Layers, Played in Silence</span></span>
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; padding-top: 24px; border-top: 1px solid #323232; font-size: 12px; line-height: 1.33; font-weight: 500; letter-spacing: 0.96px; font-style: normal; font-family: &quot;IBM Plex Mono&quot;, ui-monospace, Menlo, monospace"><span class="spec" style="letter-spacing: 0.96px"><span style="font-family: &quot;IBM Plex Mono&quot;, ui-monospace, Menlo, monospace; font-size: 12px; letter-spacing: 0.96px">© 2026 KATMAN. All rights reserved. A <a class="k-wa" href="https://www.workattack.com" target="_blank" rel="noopener">Workattack</a> Venture · <a href="/kvkk" style="color: #eeece9;">KVKK Aydınlatma Metni</a> · <a href="#cerez-tercihleri" style="color: #eeece9;">Çerez Tercihleri</a></span></span><span class="spec" style="text-align: right"><span style="letter-spacing: 0.96px">Built in Layers, Played in Silence</span></span>
     </div>
   </div>
 </footer></div>
@@ -447,9 +447,45 @@ function kSend(data) {
   }).then((r) => { clearTimeout(timer); return !!(r && r.ok); })
     .catch(() => { clearTimeout(timer); return false; });
 }
+// GA4 ölçümü: yalnızca çerez onayı varsa gönderilir (window.katmanTrack, çerez onay betiği).
+// Yalnızca anonim seçimler gönderilir; ad, e-posta, telefon, şehir veya mesaj asla gönderilmez.
+function kT(name, params) { try { if (window.katmanTrack) window.katmanTrack(name, params); } catch (e) {} }
+const K_MAT = { wood: 'ahsap', legs: 'ayak', spikes: 'spike', plat: 'ust_raf' };
+const K_VIEW = ['angle', 'elev', 'zoom', 'gear', 'cables', 'covers', 'panX', 'panY'];
+function kCfgParams(c) {
+  return c ? { shelf_count: c.tiers, shelf_gaps_mm: c.gaps.length ? c.gaps.join('-') : 'yok', wood: c.wood, legs: c.legs, spikes: c.spikes,
+    top_shelf: c.topShelf ? 'var' : 'yok', top_shelf_material: c.topShelf ? c.plat : 'yok' } : {};
+}
 class Component extends DCLogic {
-  componentDidMount() { this.kScroll(); }
-  componentWillUnmount() { if (this._kon) { window.removeEventListener('scroll', this._kon); window.removeEventListener('resize', this._kon); } if (this._kraf) cancelAnimationFrame(this._kraf); }
+  componentDidMount() {
+    this.kScroll();
+    // ölçüm: her seçim setState'ten geçer; önceki değerle karşılaştırılır, yalnızca değişen seçim bir kez gönderilir
+    if (!this._kWrapped) {
+      this._kWrapped = true;
+      const kSet = this.setState;
+      this.setState = function (p, cb) { try { this.kTrackPatch(p); } catch (e) {} return kSet.call(this, p, cb); };
+    }
+    // yapılandırma tamamlandı: kullanıcı teklif formuna ilk kez geçtiğinde (sayfa başına bir kez)
+    this._kFocus = (e) => {
+      const f = e.target && e.target.closest ? e.target.closest('form') : null;
+      if (!f || !f.elements || !f.elements.namedItem('eposta') || this._kDone) return;
+      this._kDone = true;
+      kT('configuration_completed', kCfgParams(this._kcur));
+    };
+    document.addEventListener('focusin', this._kFocus);
+  }
+  kTrackPatch(p) {
+    const c = this._kcur;
+    if (!p || typeof p !== 'object' || !c) return;
+    const ks = Object.keys(p);
+    const isCfg = ks.some((k) => k in K_MAT || k === 'tiers' || k === 'gaps' || k === 'topShelf');
+    const isView = ks.some((k) => K_VIEW.indexOf(k) >= 0);
+    if ((isCfg || isView) && !this._kStarted) { this._kStarted = true; kT('configurator_start', { first_action: isCfg ? 'secim' : 'goruntu' }); }
+    if ('tiers' in p && p.tiers !== c.tiers) kT('shelf_count_selected', { shelf_count: p.tiers });
+    if (Array.isArray(p.gaps)) p.gaps.forEach((g, i) => { if (g !== c.gaps[i]) kT('shelf_height_selected', { shelf_level: i + 2, shelf_gap_mm: g, shelf_count: c.tiers }); });
+    Object.keys(K_MAT).forEach((k) => { if (k in p && p[k] !== c[k]) kT('material_selected', { material_type: K_MAT[k], material_value: String(p[k]) }); });
+  }
+  componentWillUnmount() { if (this._kFocus) document.removeEventListener('focusin', this._kFocus); if (this._kon) { window.removeEventListener('scroll', this._kon); window.removeEventListener('resize', this._kon); } if (this._kraf) cancelAnimationFrame(this._kraf); }
   kScroll() {
     // galeri görselleri kaydırmaya bağlı açılır; tamamen açılınca maske kalkar (hover gölgesi kesilmesin)
     const els = Array.prototype.slice.call(document.querySelectorAll('.k-sr'));
@@ -522,7 +558,11 @@ class Component extends DCLogic {
     this.setState({ qStatus: 'loading' });
     kSend({ type: 'teklif', name: this.qData.name, email: this.qData.email, city: this.qData.city, phone: this.qData.phone,
       model: cfg.model, code: cfg.code, summary: cfg.rows, kvkk: true, website: g('website') })
-      .then((ok) => this.setState({ qStatus: ok ? 'success' : 'error' }));
+      .then((ok) => {
+        // teklif talebi yalnızca sunucu başarılı yanıt verdiğinde ölçülür (bir kez)
+        if (ok && !this._kLead) { this._kLead = true; kT('generate_lead', Object.assign({ form_type: 'teklif' }, kCfgParams(this._kcur))); }
+        this.setState({ qStatus: ok ? 'success' : 'error' });
+      });
   }
   renderVals() {
     const WOODS = {
@@ -572,6 +612,7 @@ class Component extends DCLogic {
     const TOPZ = BASES[NT - 1], PT = TOPZ + 44;
     // opsiyonel üst raf (20 mm): varsayılan kapalı
     const topOn = !!st.topShelf;
+    this._kcur = { tiers: NT, gaps: gapMm.slice(), wood: woodKey, legs: metalKey, spikes: spikeKey, plat: platKey, topShelf: topOn };
     const END = topOn ? PT : TOPZ;
     // cihaz çizimleri varsayılan 180 mm düzenine göre yazıldı; ZO o katın gerçek yüksekliğine kaydırır
     let ZO = 0;

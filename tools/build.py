@@ -84,6 +84,10 @@ import hashlib
 _rt = open(RUNTIME, 'rb').read()
 RT_NAME = 'dc-runtime-' + hashlib.sha1(_rt).hexdigest()[:10] + '.js'
 open(os.path.join(A, RT_NAME), 'wb').write(_rt)
+# çerez onayı + GA4 (tools/katman-consent.js); adında içerik özeti
+_ck = open(os.path.join(STATIC, 'tools', 'katman-consent.js'), 'rb').read()
+CK_NAME = 'katman-consent-' + hashlib.sha1(_ck).hexdigest()[:10] + '.js'
+open(os.path.join(A, CK_NAME), 'wb').write(_ck)
 from fontTools.ttLib import TTFont
 for w in ('400', '500'):
     f = TTFont(os.path.join(PLEX, f'IBMPlexMono-{w}.ttf'))
@@ -104,7 +108,7 @@ for src, out, url in PAGES:
     k = '<script src="./support.js"></script>'
     assert s.count(k) == 1, src
     pre = ''.join(f'<link rel="preload" href="/assets/fonts/{fid}.woff2" as="font" type="font/woff2" crossorigin>\n' for fid in ('66096ca68e67965985d268e1ce59cb5b', '97231e0de623b2d24619c38cee435b7d'))
-    s = s.replace(k, pre + f'<script>window.__resources={{}}</script><script src="/assets/{RT_NAME}"></script>')
+    s = s.replace(k, pre + f'<script>window.__resources={{}}</script><script src="/assets/{CK_NAME}" defer></script><script src="/assets/{RT_NAME}"></script>')
     # JavaScript kapalıysa / tarayıcı içeriği çizemezse: başlık, açıklama ve menü
     h1 = re.sub(r'<[^>]+>', ' ', re.search(r'<h1[^>]*>(.*?)</h1>', s, re.S).group(1))
     h1 = re.sub(r'\s+', ' ', h1).strip()
@@ -122,6 +126,7 @@ for src, out, url in PAGES:
     s = link_re.sub(lambda m: ROUTE[m.group(1)], s)
     s = s.replace("font-weight:400}", "font-weight:400;font-display:swap}").replace("font-weight:500}", "font-weight:500;font-display:swap}").replace("font-weight:700}", "font-weight:700;font-display:swap}")
     assert '/_blob/' not in s and '.dc.html' not in s, src
+    assert s.count('googletagmanager.com') == 0 and s.count('katman-consent-') == 1, src
     open(os.path.join(OUT, out + '.html'), 'w', encoding='utf-8').write(s)
     print('sayfa', out + '.html', '←', src + '.dc.html')
 
