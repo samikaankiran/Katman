@@ -82,6 +82,8 @@ nav[aria-label="Ana menü"] a{text-decoration:none !important;padding-bottom:4px
 nav[aria-label="Ana menü"] a:hover,nav[aria-label="Ana menü"] a[aria-current="page"]{background-size:100% 1px}
 footer a{width:fit-content;text-decoration:none !important;padding-bottom:4px;background-image:linear-gradient(#86c8ee,#86c8ee);background-repeat:no-repeat;background-position:left bottom;background-size:0% 1px;transition:background-size 450ms ease}
 footer a:hover,footer a:focus-visible{background-size:100% 1px}
+/* footer alt satırı: masaüstünde yasal bağlantılar telif satırının altında, slogan sağda tek satır */
+@media (min-width:721px){.k-flegal{display:block;margin-top:10px}.k-fsep{display:none}}
 @media (max-width:720px){footer nav a,footer nav + div > a{padding:14px 0 !important;background-position:left calc(100% - 12px) !important}
 footer nav > div{gap:0 32px !important}footer nav,footer nav + div{gap:4px !important}
 footer .spec a{display:inline-block;padding:12px 0 !important;margin:-12px 0}}
@@ -306,12 +308,12 @@ h2[style*="font-size: 40px"]{font-size:30px !important;line-height:34px !importa
         </div>
       </div>
     </div>
-    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; padding-top: 24px; border-top: 1px solid #323232; font-size: 12px; line-height: 1.33; font-weight: 500; letter-spacing: 0.96px; font-style: normal; font-family: &quot;IBM Plex Mono&quot;, ui-monospace, Menlo, monospace"><span class="spec" style="letter-spacing: 0.96px"><span style="font-family: &quot;IBM Plex Mono&quot;, ui-monospace, Menlo, monospace; font-size: 12px; letter-spacing: 0.96px">© 2026 KATMAN. All rights reserved. A <a class="k-wa" href="https://www.workattack.com" target="_blank" rel="noopener">Workattack</a> Venture · <a href="/kvkk" style="color: #eeece9;">KVKK Aydınlatma Metni</a> · <a href="/cerez-politikasi" style="color: #eeece9;">Çerez Politikası</a> · <a href="#cerez-tercihleri" style="color: #eeece9;">Çerez Tercihleri</a></span></span><span class="spec" style="text-align: right">Built in Layers, Played in Silence</span>
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; padding-top: 24px; border-top: 1px solid #323232; font-size: 12px; line-height: 1.33; font-weight: 500; letter-spacing: 0.96px; font-style: normal; font-family: &quot;IBM Plex Mono&quot;, ui-monospace, Menlo, monospace"><span class="spec" style="letter-spacing: 0.96px"><span style="font-family: &quot;IBM Plex Mono&quot;, ui-monospace, Menlo, monospace; font-size: 12px; letter-spacing: 0.96px">© 2026 KATMAN. All rights reserved. A <a class="k-wa" href="https://www.workattack.com" target="_blank" rel="noopener">Workattack</a> Venture<span class="k-flegal"><span class="k-fsep"> · </span><a href="/kvkk" style="color: #eeece9;">KVKK Aydınlatma Metni</a> · <a href="/cerez-politikasi" style="color: #eeece9;">Çerez Politikası</a> · <a href="#cerez-tercihleri" style="color: #eeece9;">Çerez Tercihleri</a></span></span></span><span class="spec" style="text-align: right">Built in Layers, Played in Silence</span>
     </div>
   </div>
 </footer></div>
 </x-dc><script>(function(){var x=document.querySelector("x-dc");if(!x)return;var d=Object.getOwnPropertyDescriptor(Element.prototype,"innerHTML");Object.defineProperty(x,"innerHTML",{configurable:true,get:function(){return d.get.call(this).replace(/ data-k-(src|href|d|transform)="\{\{/g,' $1="{{')},set:function(v){d.set.call(this,v)}})})();</script>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3497}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3491}}'>
 class Component extends DCLogic {
   componentDidMount() { this.kReveal(); this.kScroll(); }
   componentWillUnmount() { if (this._kmo) this._kmo.disconnect(); if (this._kio) this._kio.disconnect(); if (this._kon) { window.removeEventListener('scroll', this._kon); window.removeEventListener('resize', this._kon); } if (this._kraf) cancelAnimationFrame(this._kraf); }
