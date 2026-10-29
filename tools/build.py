@@ -25,7 +25,6 @@ PAGES = [  # canvas dosyası, çıktı dosyası, adres
     ('Iletisim', 'iletisim', '/iletisim'),
     ('Kvkk', 'kvkk', '/kvkk'),
     ('CerezPolitikasi', 'cerez-politikasi', '/cerez-politikasi'),
-    ('Gizlilik', 'privacy-policy', '/privacy-policy'),
 ]
 ROUTE = {src: url for src, _, url in PAGES}
 NAV = [('Ana Sayfa', '/'), ('Ürünler', '/urunler'), ("Kendi KATMAN'ını Oluştur", '/konfigurator'), ('Teknoloji', '/teknoloji'),
