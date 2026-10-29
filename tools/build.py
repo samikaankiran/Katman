@@ -25,6 +25,7 @@ PAGES = [  # canvas dosyası, çıktı dosyası, adres
     ('Iletisim', 'iletisim', '/iletisim'),
     ('Kvkk', 'kvkk', '/kvkk'),
     ('CerezPolitikasi', 'cerez-politikasi', '/cerez-politikasi'),
+    ('Gizlilik', 'privacy-policy', '/privacy-policy'),
 ]
 ROUTE = {src: url for src, _, url in PAGES}
 NAV = [('Ana Sayfa', '/'), ('Ürünler', '/urunler'), ("Kendi KATMAN'ını Oluştur", '/konfigurator'), ('Teknoloji', '/teknoloji'),
@@ -102,7 +103,7 @@ TPL_FIX = ('<script>(function(){var x=document.querySelector("x-dc");if(!x)retur
            'Object.defineProperty(x,"innerHTML",{configurable:true,get:function(){return d.get.call(this)'
            '.replace(/ data-k-(src|href|d|transform)="\\{\\{/g,\' $1="{{\')},set:function(v){d.set.call(this,v)}})})();</script>')
 
-link_re = re.compile(r'(?<![\w-])(Main|Urunler|Product|Teknoloji|Galeri|Hakkimizda|Iletisim|Kvkk|CerezPolitikasi)\.dc\.html')
+link_re = re.compile(r'(?<![\w-])(Main|Urunler|Product|Teknoloji|Galeri|Hakkimizda|Iletisim|Kvkk|CerezPolitikasi|Gizlilik)\.dc\.html')
 
 for src, out, url in PAGES:
     s = open(os.path.join(PROJECT, src + '.dc.html'), encoding='utf-8').read()
