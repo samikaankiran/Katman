@@ -120,6 +120,7 @@ form input:hover,form select:hover,form textarea:hover,form input:focus,form sel
 .k-in[type=number]::-webkit-outer-spin-button,.k-in[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .k-fld{display:flex;flex-direction:column;gap:6px;min-width:0}
 .k-ferr{font-family:'Archivo Semi Expanded',sans-serif;font-size:13px;line-height:18px;color:#9b2c22}
+#c-telefon[aria-invalid="true"]{border-color:#9b2c22 !important}
 .k-cf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 16px}
 .k-cf-full{grid-column:1/-1}
 .k-cf-box{padding:32px}
@@ -194,7 +195,7 @@ form[style*="padding: 32px"],.k-cf-box{padding:20px 16px !important}
         <form onSubmit="{{submit}}" aria-busy="{{mBusyA}}" style="position: relative; display: flex; flex-direction: column; gap: 16px; padding: 32px; border: 1px solid #d3cfc9; border-radius: 6px;">
           <div style="display: flex; flex-direction: column; gap: 6px;"><label for="c-ad" class="lbl">Ad Soyad</label><input id="c-ad" name="c-ad" disabled="{{mBusy}}" type="text" autocomplete="name" required="" style="min-height: 48px; padding: 12px 14px; border: 1px solid #d3cfc9; border-radius: 6px; background: #eeece9; color: #000000; font-family: 'Archivo Semi Expanded', sans-serif; font-size: 16px; box-sizing: border-box; width: 100%;"></div>
           <div style="display: flex; flex-direction: column; gap: 6px;"><label for="c-eposta" class="lbl">E-posta</label><input id="c-eposta" name="c-eposta" disabled="{{mBusy}}" type="email" autocomplete="email" required="" style="min-height: 48px; padding: 12px 14px; border: 1px solid #d3cfc9; border-radius: 6px; background: #eeece9; color: #000000; font-family: 'Archivo Semi Expanded', sans-serif; font-size: 16px; box-sizing: border-box; width: 100%;"></div>
-          <div style="display: flex; flex-direction: column; gap: 6px;"><label for="c-telefon" class="lbl">Telefon</label><input id="c-telefon" name="c-telefon" disabled="{{mBusy}}" type="tel" autocomplete="tel" inputmode="tel" required="" maxlength="15" placeholder="0 532 000-00-00" pattern="0[ \-]?5\d{2}[ \-]?\d{3}[ \-]?\d{2}[ \-]?\d{2}" title="Cep telefonunuzu 0 532 000-00-00 biçiminde yazın." style="min-height: 48px; padding: 12px 14px; border: 1px solid #d3cfc9; border-radius: 6px; background: #eeece9; color: #000000; font-family: 'Archivo Semi Expanded', sans-serif; font-size: 16px; box-sizing: border-box; width: 100%;"></div>
+          <div style="display: flex; flex-direction: column; gap: 6px;"><label for="c-telefon" class="lbl">Telefon</label><input id="c-telefon" name="c-telefon" disabled="{{mBusy}}" type="tel" autocomplete="tel" inputmode="tel" aria-required="true" aria-invalid="{{mPhI}}" aria-describedby="c-telefon-err" onChange="{{mPhInput}}" maxlength="15" placeholder="0 532 000-00-00" style="min-height: 48px; padding: 12px 14px; border: 1px solid #d3cfc9; border-radius: 6px; background: #eeece9; color: #000000; font-family: 'Archivo Semi Expanded', sans-serif; font-size: 16px; box-sizing: border-box; width: 100%;"><sc-if value="{{mPhErr}}" hint-placeholder-val="{{false}}"><span id="c-telefon-err" class="k-ferr" role="alert">Cep telefonunuzu 0 532 000-00-00 biçiminde yazın.</span></sc-if></div>
           <div style="display: flex; flex-direction: column; gap: 6px;"><label for="c-mesaj" class="lbl">Mesaj</label><textarea id="c-mesaj" name="c-mesaj" disabled="{{mBusy}}" rows="6" required="" style="padding: 12px 14px; border: 1px solid #d3cfc9; border-radius: 6px; background: #eeece9; color: #000000; font-family: 'Archivo Semi Expanded', sans-serif; font-size: 16px; box-sizing: border-box; width: 100%; resize: vertical;"></textarea></div>
           <div aria-hidden="true" style="position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden;"><label for="m-website">Web sitesi</label><input id="m-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
           <div style="display: flex; align-items: flex-start; gap: 10px;"><input id="m-kvkk" name="kvkk" type="checkbox" value="1" required="" disabled="{{mBusy}}" class="k-chk" style="width: 20px; height: 20px; margin: 1px 0 0; flex: none; cursor: pointer;"><label for="m-kvkk" style="font-family: 'Archivo Semi Expanded', sans-serif; font-size: 14px; line-height: 22px; color: #3e3e3e; cursor: pointer;"><a href="/kvkk" target="_blank" rel="noopener" style="color: #000000; text-decoration: underline; text-underline-offset: 3px;">KVKK Aydınlatma Metni</a>'ni okudum ve anladım.</label></div>
@@ -309,6 +310,7 @@ function kSend(data) {
   }).then((r) => { clearTimeout(timer); return !!(r && r.ok); })
     .catch(() => { clearTimeout(timer); return false; });
 }
+const M_PHONE_RE = /^0[ -]?5\d{2}[ -]?\d{3}[ -]?\d{2}[ -]?\d{2}$/;
 const CF_FIELDS = ['ad', 'eposta', 'telefon', 'adet', 'genislik', 'derinlik', 'aralik', 'kvkk'];
 const CF_NUM = /^\d+([.,]\d+)?$/;
 // GA4 ölçümü: yalnızca çerez onayı varsa gönderilir; ad, e-posta, telefon, ölçüler veya mesaj gönderilmez.
@@ -394,7 +396,7 @@ class Component extends DCLogic {
     if (!v.eposta) e.eposta = 'E-posta adresinizi yazın.';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.eposta)) e.eposta = 'Geçerli bir e-posta adresi girin.';
     const digits = v.telefon.replace(/\D/g, '');
-    if (!v.telefon) e.telefon = 'Telefon numaranızı yazın.';
+    if (!v.telefon) e.telefon = 'Cep telefonunuzu 0 532 000-00-00 biçiminde yazın.';
     else if (!/^0[ -]?5\d{2}[ -]?\d{3}[ -]?\d{2}[ -]?\d{2}$/.test(v.telefon)) e.telefon = 'Cep telefonunuzu 0 532 000-00-00 biçiminde yazın.';
     if (['1', '2', '3', '4'].indexOf(v.adet) < 0) e.adet = 'Raf sayısını seçin.';
     const pos = (x, k, empty) => {
@@ -465,6 +467,11 @@ class Component extends DCLogic {
     const lines = ['İletişim Mesajı', '', 'Ad Soyad: ' + (v.name || ''), 'E-posta: ' + (v.email || ''), 'Telefon: ' + (v.phone || '—'), '', v.message || ''];
     return 'mailto:info@katmanaudio.com?subject=' + encodeURIComponent('KATMAN · İletişim') + '&body=' + encodeURIComponent(lines.join('\n'));
   }
+  mPhInput(e) {
+    const st = this.state || {};
+    const t = e && e.target;
+    if (st.mPhErr && t && M_PHONE_RE.test(String(t.value || '').trim())) this.setState({ mPhErr: false });
+  }
   mSubmit(e) {
     if (e && e.preventDefault) e.preventDefault();
     const st = this.state || {};
@@ -472,7 +479,12 @@ class Component extends DCLogic {
     const f = (e && (e.currentTarget || e.target)) || null;
     const g = (n) => { const el = f && f.elements ? f.elements.namedItem(n) : null; return el ? String(el.value || '').trim() : ''; };
     this.mData = { name: g('c-ad'), email: g('c-eposta'), phone: g('c-telefon'), message: g('c-mesaj') };
-    this.setState({ mStatus: 'loading' });
+    if (!M_PHONE_RE.test(this.mData.phone)) {
+      this.setState({ mPhErr: true });
+      const el = f && f.elements ? f.elements.namedItem('c-telefon') : null; if (el && el.focus) el.focus();
+      return;
+    }
+    this.setState({ mPhErr: false, mStatus: 'loading' });
     kSend(Object.assign({ type: 'iletisim', kvkk: true, website: g('website') }, this.mData))
       .then((ok) => this.setState({ mStatus: ok ? 'success' : 'error' }));
   }
@@ -486,6 +498,7 @@ class Component extends DCLogic {
     const out = {
       sent, notSent: !sent,
       submit: (e) => this.mSubmit(e),
+      mPhErr: !!st.mPhErr, mPhI: st.mPhErr ? 'true' : 'false', mPhInput: (e) => this.mPhInput(e),
       mBusy, mBusyA: mBusy ? 'true' : 'false', mBtn: mBusy ? 'Gönderiliyor…' : 'Mesaj Gönder',
       mFailed: st.mStatus === 'error', mMailto: this.mMailto(),
       cfSubmit: (e) => this.cfSubmit(e),
