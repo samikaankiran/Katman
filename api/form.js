@@ -44,6 +44,7 @@ function validate(d) {
   if (!EMAIL_RE.test(clip(d.email, 200))) return 'email';
   if (d.kvkk !== true) return 'kvkk';
   if (type === 'teklif' && clip(d.phone, 40).replace(/\D/g, '').length < 7) return 'phone';
+  if (type === 'iletisim' && clip(d.phone, 40).replace(/\D/g, '').length < 10) return 'phone';
   if (type === 'iletisim' && clip(d.message, 5000).length < 2) return 'message';
   if (type === 'ozel-olcu') {
     const n = Number(d.shelfCount);
