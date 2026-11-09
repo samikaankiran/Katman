@@ -8,10 +8,10 @@
 // Vercel → Project → Settings → Environment Variables:
 //   RESEND_API_KEY  (zorunlu)  Resend panelinden alınan API anahtarı
 //   MAIL_TO         (isteğe bağlı) Varsayılan: info@katmanaudio.com
-//   MAIL_FROM       (isteğe bağlı) Varsayılan: Katman Web <form@katmanaudio.com>
+//   MAIL_FROM       (isteğe bağlı) Varsayılan: KATMAN <info@katmanaudio.com>
 
 const MAIL_TO = process.env.MAIL_TO || 'info@katmanaudio.com';
-const MAIL_FROM = process.env.MAIL_FROM || 'Katman Web <form@katmanaudio.com>';
+const MAIL_FROM = process.env.MAIL_FROM || 'KATMAN <info@katmanaudio.com>';
 const RESEND_URL = process.env.RESEND_API_URL || 'https://api.resend.com/emails';
 
 const ALLOWED_HOSTS = [/^katmanaudio\.com$/, /^www\.katmanaudio\.com$/, /\.vercel\.app$/, /^localhost(:\d+)?$/, /^127\.0\.0\.1(:\d+)?$/];
