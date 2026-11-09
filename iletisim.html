@@ -166,6 +166,17 @@ form[style*="padding: 32px"],.k-cf-box{padding:20px 16px !important}
 [style*="font-size: 16px; line-height: 26px"]{line-height:24px !important}
 [style*="font-size: 22px; line-height: 30px"]{font-size:20px !important;line-height:26px !important}
 }
+/* İletişim: başlık, iletişim listesi ve form ızgarası; gönderim sonrası kutu listeye dikey ortalanır */
+.k-ctg{row-gap:40px !important}
+.k-ctl + .k-ctr{margin-top:8px}
+@media (min-width: 968px){
+.k-ctg{grid-template-columns:1fr 1fr !important;grid-template-rows:auto 1fr}
+.k-cta{grid-column:1;grid-row:1}
+.k-ctl{grid-column:1;grid-row:2;align-self:start}
+.k-ctr{grid-column:2;grid-row:1 / span 2;margin-top:0 !important}
+.k-ctg:has(p[role="status"]) .k-ctr{grid-row:2;align-self:center}
+.k-ctg:has(p[role="status"]) .k-ctl{align-self:center}
+}
 </style>
 </helmet>
 <div class="k-root" style="min-height: 100vh; background: #eeece9; color: #000000; font-family: 'Archivo Expanded', sans-serif;">
@@ -180,17 +191,17 @@ form[style*="padding: 32px"],.k-cf-box{padding:20px 16px !important}
 </header>
 <main id="icerik">
 <section style="border-bottom: 1px solid #d3cfc9;">
-  <div style="max-width: 1312px; margin: 0 auto; padding-left: 32px; padding-right: 32px; box-sizing: border-box; padding-top: 96px; padding-bottom: 96px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 48px 64px; align-items: start;">
-    <div style="display: flex; flex-direction: column; gap: 24px;">
+  <div class="k-ctg" style="max-width: 1312px; margin: 0 auto; padding-left: 32px; padding-right: 32px; box-sizing: border-box; padding-top: 96px; padding-bottom: 96px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 48px 64px; align-items: start;">
+    <div class="k-cta" style="display: flex; flex-direction: column; gap: 24px;">
       <span class="lbl k-rv" style="color: #3e3e3e;">İletişim</span>
       <h1 style="margin: 0; font-family: 'Archivo Expanded', sans-serif; font-size: clamp(40px, 4.6vw, 64px); line-height: 1; font-weight: 700; letter-spacing: -0.02em;"><span class="k-ln"><span class="k-lni"><b style="font-size: clamp(40px, 4.6vw, 64px); letter-spacing: -0.02em">Her Şey Bir Merhabayla Başlar.</b></span></span></h1>
       <p class="k-rv" style="margin: 0; max-width: 600px; font-size: 18px; line-height: 24px; font-weight: 500;">Sorularınız, fikirleriniz veya KATMAN hakkında<br class="k-dbr">merak ettikleriniz için bize ulaşın.</p>
-      <div style="display: flex; flex-direction: column; margin-top: 16px; border-bottom: 1px solid #d3cfc9;">
+    </div>
+      <div class="k-ctl" style="display: flex; flex-direction: column; border-bottom: 1px solid #d3cfc9;">
         <div style="display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; border-top: 1px solid #d3cfc9;"><span class="lbl" style="color: #3e3e3e;">E-posta</span><a href="mailto:info@katmanaudio.com" class="spec k-ul">info@katmanaudio.com</a></div>
         <div style="display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; border-top: 1px solid #d3cfc9;"><span class="lbl" style="color: #3e3e3e;">Instagram</span><a href="https://instagram.com/katmanaudio" class="spec k-ul">@katmanaudio</a></div>
       </div>
-    </div>
-    <div>
+    <div class="k-ctr">
       <sc-if value="{{notSent}}" hint-placeholder-val="{{true}}">
         <form onSubmit="{{submit}}" aria-busy="{{mBusyA}}" style="position: relative; display: flex; flex-direction: column; gap: 16px; padding: 32px; border: 1px solid #d3cfc9; border-radius: 6px;">
           <div style="display: flex; flex-direction: column; gap: 6px;"><label for="c-ad" class="lbl">Ad Soyad</label><input id="c-ad" name="c-ad" disabled="{{mBusy}}" type="text" autocomplete="name" required="" style="min-height: 48px; padding: 12px 14px; border: 1px solid #d3cfc9; border-radius: 6px; background: #eeece9; color: #000000; font-family: 'Archivo Semi Expanded', sans-serif; font-size: 16px; box-sizing: border-box; width: 100%;"></div>
