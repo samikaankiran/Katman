@@ -47,6 +47,8 @@ a{color:#000000;text-decoration:none}
 a:hover{text-decoration:underline;text-underline-offset:4px}
 .k-card:hover{text-decoration:none !important}
 a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+#telefon[aria-invalid="true"]{border-color:#9b2c22 !important}
+.k-ferr{font-family:'Archivo Semi Expanded',sans-serif;font-size:13px;line-height:18px;color:#9b2c22}
 .lbl{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;line-height:16px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase}
 .spec{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:14px;line-height:20px;font-weight:400;font-display:swap}
 .btn{transition:border-radius 150ms,background-color 150ms,color 150ms}
@@ -320,7 +322,7 @@ div:has(> .k-vctl){padding-bottom:16px !important}
             <div style="display: flex; flex-direction: column; gap: 6px;"><label for="ad" class="lbl">Ad Soyad</label><input id="ad" name="ad" type="text" required="" autocomplete="name" disabled="{{qBusy}}" style="min-height: 48px; padding: 0 14px; border: 1px solid #d3cfc9; border-radius: 6px; background: #eeece9; color: #000000; font-family: 'Archivo Semi Expanded', sans-serif; font-size: 16px; box-sizing: border-box; width: 100%;"></div>
             <div style="display: flex; flex-direction: column; gap: 6px;"><label for="eposta" class="lbl">E-posta</label><input id="eposta" name="eposta" type="email" required="" autocomplete="email" disabled="{{qBusy}}" style="min-height: 48px; padding: 0 14px; border: 1px solid #d3cfc9; border-radius: 6px; background: #eeece9; color: #000000; font-family: 'Archivo Semi Expanded', sans-serif; font-size: 16px; box-sizing: border-box; width: 100%;"></div>
             <div style="display: flex; flex-direction: column; gap: 6px;"><label for="sehir" class="lbl">Şehir</label><input id="sehir" name="sehir" type="text" required="" autocomplete="address-level2" disabled="{{qBusy}}" style="min-height: 48px; padding: 0 14px; border: 1px solid #d3cfc9; border-radius: 6px; background: #eeece9; color: #000000; font-family: 'Archivo Semi Expanded', sans-serif; font-size: 16px; box-sizing: border-box; width: 100%;"></div>
-            <div style="display: flex; flex-direction: column; gap: 6px;"><label for="telefon" class="lbl">Telefon</label><input id="telefon" name="telefon" type="tel" required="" autocomplete="tel" disabled="{{qBusy}}" style="min-height: 48px; padding: 0 14px; border: 1px solid #d3cfc9; border-radius: 6px; background: #eeece9; color: #000000; font-family: 'Archivo Semi Expanded', sans-serif; font-size: 16px; box-sizing: border-box; width: 100%;"></div>
+            <div style="display: flex; flex-direction: column; gap: 6px;"><label for="telefon" class="lbl">Telefon</label><input id="telefon" name="telefon" type="tel" required="" autocomplete="tel" inputmode="tel" aria-required="true" aria-invalid="{{qPhI}}" aria-describedby="telefon-err" onChange="{{qPhInput}}" maxlength="15" placeholder="0 532 000-00-00" disabled="{{qBusy}}" style="min-height: 48px; padding: 0 14px; border: 1px solid #d3cfc9; border-radius: 6px; background: #eeece9; color: #000000; font-family: 'Archivo Semi Expanded', sans-serif; font-size: 16px; box-sizing: border-box; width: 100%;"><sc-if value="{{qPhErr}}" hint-placeholder-val="{{false}}"><span id="telefon-err" class="k-ferr" role="alert">Cep telefonunuzu 0 532 000-00-00 biçiminde yazın.</span></sc-if></div>
             <div aria-hidden="true" style="position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden;"><label for="q-website">Web sitesi</label><input id="q-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
             <div style="display: flex; align-items: flex-start; gap: 10px;"><input id="q-kvkk" name="kvkk" type="checkbox" value="1" required="" disabled="{{qBusy}}" style="width: 20px; height: 20px; margin: 1px 0 0; accent-color: #000000; flex: none; cursor: pointer;"><label for="q-kvkk" style="font-family: 'Archivo Semi Expanded', sans-serif; font-size: 14px; line-height: 22px; color: #3e3e3e; cursor: pointer;"><a href="/kvkk" target="_blank" rel="noopener" style="color: #000000; text-decoration: underline; text-underline-offset: 3px;">KVKK Aydınlatma Metni</a>'ni okudum ve anladım.</label></div>
             <sc-if value="{{qFailed}}" hint-placeholder-val="{{false}}"><div role="alert" style="display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border: 1px solid #9b2c22; border-radius: 6px;"><p style="margin: 0; font-family: 'Archivo Semi Expanded', sans-serif; font-size: 15px; line-height: 22px; font-weight: 500; color: #9b2c22;">Talebiniz şu anda gönderilemedi.</p><p style="margin: 0; font-family: 'Archivo Semi Expanded', sans-serif; font-size: 14px; line-height: 21px; color: #3e3e3e;">Lütfen biraz sonra tekrar deneyin ya da bilgilerinizi hazır bir e-posta ile bize iletin.</p><a data-k-href="{{qMailto}}" class="spec" style="align-self: flex-start; color: #000000; text-decoration: underline; text-underline-offset: 3px;">E-posta ile gönder → info@katmanaudio.com</a></div></sc-if>
@@ -450,6 +452,7 @@ function kSend(data) {
     .catch(() => { clearTimeout(timer); return false; });
 }
 // GA4 ölçümü: yalnızca çerez onayı varsa gönderilir (window.katmanTrack, çerez onay betiği).
+const Q_PHONE_RE = /^0[ -]?5\d{2}[ -]?\d{3}[ -]?\d{2}[ -]?\d{2}$/;
 // Yalnızca anonim seçimler gönderilir; ad, e-posta, telefon, şehir veya mesaj asla gönderilmez.
 function kT(name, params) { try { if (window.katmanTrack) window.katmanTrack(name, params); } catch (e) {} }
 const K_MAT = { wood: 'ahsap', legs: 'ayak', spikes: 'spike', plat: 'ust_raf' };
@@ -557,6 +560,11 @@ class Component extends DCLogic {
       .concat(c.rows.map((r) => r[0] + ': ' + r[1]), ['', 'Ad Soyad: ' + (q.name || ''), 'E-posta: ' + (q.email || ''), 'Şehir: ' + (q.city || ''), 'Telefon: ' + (q.phone || '')]);
     return 'mailto:info@katmanaudio.com?subject=' + encodeURIComponent('Teklif Talebi · ' + (c.model || 'KATMAN')) + '&body=' + encodeURIComponent(lines.join('\n'));
   }
+  qPhInput(e) {
+    const st = this.state || {};
+    const t = e && e.target;
+    if (st.qPhErr && t && Q_PHONE_RE.test(String(t.value || '').trim())) this.setState({ qPhErr: false });
+  }
   qSubmit(e) {
     if (e && e.preventDefault) e.preventDefault();
     const st = this.state || {};
@@ -564,10 +572,15 @@ class Component extends DCLogic {
     const f = (e && (e.currentTarget || e.target)) || null;
     const g = (n) => { const el = f && f.elements ? f.elements.namedItem(n) : null; return el ? String(el.value || '').trim() : ''; };
     const cfg = this.qRead();
+    if (!Q_PHONE_RE.test(g('telefon'))) {
+      this.setState({ qPhErr: true });
+      const el = f && f.elements ? f.elements.namedItem('telefon') : null; if (el && el.focus) el.focus();
+      return;
+    }
     this.qData = { name: g('ad'), email: g('eposta'), city: g('sehir'), phone: g('telefon'), cfg };
     // yapılandırma tamamlandı: kullanıcı geçerli formla teklif istediği an yapılandırma kesinleşir (sayfa başına bir kez)
     if (!this._kDone) { this._kDone = true; kT('configuration_completed', Object.assign({ customized: this._kCustom ? 'evet' : 'hayir' }, kCfgParams(this._kcur))); }
-    this.setState({ qStatus: 'loading' });
+    this.setState({ qPhErr: false, qStatus: 'loading' });
     kSend({ type: 'teklif', name: this.qData.name, email: this.qData.email, city: this.qData.city, phone: this.qData.phone,
       model: cfg.model, code: cfg.code, summary: cfg.rows, kvkk: true, website: g('website') })
       .then((ok) => {
@@ -1199,6 +1212,7 @@ class Component extends DCLogic {
       ],
       sent: st.qStatus === 'success', notSent: st.qStatus !== 'success',
       submit: (e) => this.qSubmit(e),
+      qPhErr: !!st.qPhErr, qPhI: st.qPhErr ? 'true' : 'false', qPhInput: (e) => this.qPhInput(e),
       qBusy: st.qStatus === 'loading', qBusyA: st.qStatus === 'loading' ? 'true' : 'false',
       qBtn: st.qStatus === 'loading' ? 'Gönderiliyor…' : 'Teklif Al',
       qFailed: st.qStatus === 'error', qMailto: this.qMailto(),

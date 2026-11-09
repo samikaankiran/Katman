@@ -43,7 +43,7 @@ function validate(d) {
   if (clip(d.name, 120).length < 2) return 'name';
   if (!EMAIL_RE.test(clip(d.email, 200))) return 'email';
   if (d.kvkk !== true) return 'kvkk';
-  if (type === 'teklif' && clip(d.phone, 40).replace(/\D/g, '').length < 7) return 'phone';
+  if (type === 'teklif' && !/^0[ -]?5\d{2}[ -]?\d{3}[ -]?\d{2}[ -]?\d{2}$/.test(clip(d.phone, 40))) return 'phone';
   if (type === 'ozel-olcu' && !/^0[ -]?5\d{2}[ -]?\d{3}[ -]?\d{2}[ -]?\d{2}$/.test(clip(d.phone, 40))) return 'phone';
   if (type === 'iletisim' && !/^0[ -]?5\d{2}[ -]?\d{3}[ -]?\d{2}[ -]?\d{2}$/.test(clip(d.phone, 40))) return 'phone';
   if (type === 'iletisim' && clip(d.message, 5000).length < 2) return 'message';
