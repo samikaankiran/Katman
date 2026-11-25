@@ -1,6 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Disallow: /ayak-3d
+Disallow: /3d
 
 Sitemap: https://katmanaudio.com/sitemap.xml

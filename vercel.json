@@ -43,7 +43,7 @@
       ]
     },
     {
-      "source": "/ayak-3d",
+      "source": "/3d",
       "headers": [
         {
           "key": "X-Robots-Tag",

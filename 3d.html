@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<title>KATMAN Ayak Sistemi 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: tam ekran 3B sahne; sağda (telefonda altta) sakin bir kontrol paneli */
+:root{
+  --bg:#ECEBE7; --scene:#E4E2DD; --panel:#F7F6F3; --fg:#1C1B19; --muted:#6B6760; --line:#D3CFC7;
+  --accent:#7A4E2E; --accent-fg:#FFFFFF; --chip:#E6E2DA;
+  --display:'Archivo', system-ui, sans-serif; --mono:'IBM Plex Mono', ui-monospace, monospace;
+  --ease:cubic-bezier(0.65,0,0.35,1);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#151513; --scene:#1B1A18; --panel:#22211E; --fg:#ECEAE5; --muted:#A29D94; --line:#3A3833;
+  --accent:#C8936A; --accent-fg:#1B1A18; --chip:#2E2C28; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#151513; --scene:#1B1A18; --panel:#22211E; --fg:#ECEAE5; --muted:#A29D94; --line:#3A3833;
+  --accent:#C8936A; --accent-fg:#1B1A18; --chip:#2E2C28; color-scheme:dark}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--display);overflow:hidden}
+.app{position:relative;height:100%;display:grid;grid-template-columns:1fr 320px}
+#stage{position:relative;min-width:0;min-height:0;background:var(--scene)}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#stage canvas:active{cursor:grabbing}
+.hint{position:absolute;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));
+  font:12px/1.4 var(--mono);color:var(--muted);pointer-events:none}
+.labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;transform:translate(-100%,-50%);font:500 12px var(--mono);color:var(--fg);background:var(--panel);
+  border:1px solid var(--line);padding:2px 7px;border-radius:4px;white-space:nowrap;font-variant-numeric:tabular-nums;
+  transition:opacity .25s var(--ease)}
+.lbl.off{opacity:0}
+aside{background:var(--panel);border-left:1px solid var(--line);overflow:auto;
+  padding-block:22px 24px;padding-left:20px;padding-right:max(20px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+.kicker{margin:0;font:500 11px var(--mono);letter-spacing:.16em;color:var(--accent)}
+h1{margin:4px 0 0;font-size:24px;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+.sub{margin:6px 0 0;font-size:13px;line-height:1.5;color:var(--muted)}
+.group{display:flex;flex-direction:column;gap:8px}
+.gtitle{margin:0;font:500 11px var(--mono);letter-spacing:.12em;color:var(--muted)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+button{font:600 13px var(--display);color:var(--fg);background:var(--chip);border:1px solid transparent;border-radius:6px;
+  padding:9px 10px;cursor:pointer;transition:background .25s var(--ease),color .25s var(--ease),border-color .25s var(--ease)}
+button:hover{border-color:var(--line)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.parts{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.parts li{display:grid;grid-template-columns:14px 1fr auto;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.parts li:last-child{border-bottom:0}
+.sw{width:10px;height:10px;border-radius:50%;align-self:center}
+.parts b{font-weight:600}
+.parts span.v{font:12px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:7px 10px 7px 8px;font-weight:500}
+.chip i{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.clbl{margin:4px 0 0;font-size:12px;color:var(--muted)}
+.note{margin:0;font-size:12px;line-height:1.5;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:760px){
+  .app{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
+  aside{border-left:0;border-top:1px solid var(--line);max-height:42vh;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px calc(14px + env(safe-area-inset-bottom,0px))}
+  h1{font-size:20px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <div id="stage">
+    <div class="labels" id="labels"></div>
+    <div class="hint">Sürükle: döndür · Kaydır / iki parmak: yakınlaş · Sağ tık / iki parmak sürükle: kaydır</div>
+  </div>
+  <aside>
+    <div>
+      <p class="kicker">KATMAN · AYAK SİSTEMİ</p>
+      <h1>KAT3 ayak sistemi</h1>
+      <p class="sub">KATMAN_OBJELER_LVL2.obj'deki spike, başlık, zemin altlığı ve borular, dört raf ile kurulmuş halde. Ölçüler çalışma ölçüsü.</p>
+    </div>
+
+    <div class="group">
+      <p class="gtitle">GÖRÜNÜM</p>
+      <div class="seg">
+        <button id="vRack" aria-pressed="true">Tüm raf</button>
+        <button id="vLeg" aria-pressed="false">Ayak yakın</button>
+        <button id="vSpike" aria-pressed="false">Spike yakın</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <p class="gtitle">GÖSTER</p>
+      <div class="seg">
+        <button id="tExplode" aria-pressed="false">Patlat</button>
+        <button id="tSection" aria-pressed="false">Kesit</button>
+        <button id="tDims" aria-pressed="true">Ölçüler</button>
+        <button id="tWood" aria-pressed="true">Raflar</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <p class="gtitle">RENKLER</p>
+      <p class="clbl">Raf</p><div class="chips" id="cWood" role="group" aria-label="Raf rengi"></div>
+      <p class="clbl">Ayak (boru ve başlık)</p><div class="chips" id="cLeg" role="group" aria-label="Ayak rengi"></div>
+      <p class="clbl">Spike</p><div class="chips" id="cSpike" role="group" aria-label="Spike rengi"></div>
+      <p class="clbl">Raf kenarı fuga çubuğu</p><div class="chips" id="cStrip" role="group" aria-label="Fuga çubuğu rengi"></div>
+    </div>
+
+    <div class="group">
+      <p class="gtitle">PARÇALAR</p>
+      <ul class="parts">
+        <li><i class="sw" id="swSpike" style="background:#B8BCC1"></i><span><b>Spike</b><br>Ø38 yaka, M32×1</span><span class="v">53</span></li>
+        <li><i class="sw" id="swTube" style="background:#B7BBC0"></i><span><b>Boru</b><br>Ø38, iki ucu M32×1 iç diş, uzun borularda üstte 3 fuga</span><span class="v">30 · 87 · 137 · 187</span></li>
+        <li><i class="sw" id="swCap" style="background:#B8BCC1"></i><span><b>Başlık</b><br>Ø38,8 flanş, alyan yuvası</span><span class="v">53</span></li>
+        <li><i class="sw" id="swCup" style="background:#B8BCC1"></i><span><b>Zemin altlığı</b><br>Ø38,8, üstte altıgen spike yuvası</span><span class="v">6,9</span></li>
+        <li><i class="sw" id="swWood" style="background:#7A4E2E"></i><span><b>Raf</b><br>kalınlık</span><span class="v">35</span></li>
+      </ul>
+    </div>
+
+    <p class="note">Kat aralıkları (raf üstünden üst rafın altına) yaklaşık 129,5 / 179,5 / 229,5 mm: flanş 3 + spike 43 − ucun altıgen yuvaya oturması 3,5 + boru. 87 mm boru dosyadan; 137 ve 187 mm aynı mantıkla türetildi. Zemin: 6,9 mm altlık zemine oturur, en alttaki spike'ın ucu altlığın altıgen yuvasına girer; 30 mm kısa boru ile en alt rafın altı zeminden yaklaşık 76,4 mm. Başlığın dişsiz gövdesi 30 mm; 35 mm rafta dişin 15 mm'si boruya girer. Raf ölçüsü 600 × 450 mm ve ayak yeri kenardan 45 mm temsilidir. Raf kenarı KATMAN_STANT dosyasındaki numuneden: üstte yuvarlatılmış dik bant ve küçük fuga, altta içe kaçan pah (35 mm rafa uyarlandı); köşeler R10. Pikap rafı ayağı henüz yok.</p>
+  </aside>
+</div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const stage = document.getElementById('stage');
+const labelsEl = document.getElementById('labels');
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = false;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.92;
+renderer.localClippingEnabled = true;
+stage.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+const mFloor = new THREE.MeshBasicMaterial({ color: 0xd8d5cf });
+function setBg(){ const c = new THREE.Color(css('--scene') || '#E4E2DD'); scene.background = c; mFloor.color.copy(c).multiplyScalar(0.9); }
+setBg();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setBg);
+new MutationObserver(setBg).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+const camera = new THREE.PerspectiveCamera(32, 1, 1, 20000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 60; controls.maxDistance = 4000;
+
+const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+sun.position.set(700, 1400, 900); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -700, right: 700, top: 700, bottom: -700, near: 100, far: 4000 });
+scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xffffff, 0xe6e1da, 1.2));
+const fill = new THREE.DirectionalLight(0xffffff, 0.55); fill.position.set(-900, 500, -700); scene.add(fill);
+
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.ShadowMaterial({ opacity: 0.06 }));
+ground.rotation.x = -Math.PI / 2; ground.visible = false;
+
+// ---------- Kesit düzlemi (ön sol ayağın ekseninden) ----------
+const clipPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0);
+const clips = [];
+
+// ---------- Malzemeler ----------
+const mk = (color, rough, metal = 1) => {
+  const m = new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, side: THREE.DoubleSide, envMapIntensity: metal ? 0.9 : 1 });
+  clips.push(m); return m;
+};
+const mTube  = mk(0xE0E2E5, 0.6, 0.55);
+const mSpike = mk(0xE0E2E5, 0.6, 0.55), mCap = mTube; // başlık ayakla aynı renk; spike ayrı seçilir
+const mHex   = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6, metalness: 0.4 }); clips.push(mHex);
+const mWood  = mk(0x6E4427, 0.62, 0);
+
+// ---------- Profiller (r, y) mm — OBJ'den ölçüldü ----------
+function thread(y0, y1, rIn, rOut, pitch = 1, down = false) {
+  const p = []; const n = Math.round((y1 - y0) / (pitch / 2));
+  for (let i = 0; i <= n; i++) { const y = y0 + i * pitch / 2; p.push([i % 2 ? rIn : rOut, y, 1]); } // 3. eleman: diş noktası (kenar çizgisi çizilmez)
+  return down ? p.reverse() : p;
+}
+// KATMAN_OBJELER_LVL2 (25.11.2026): spike, başlık, üst kapak ve borular. Diş M32×1.
+// Spike: uç y=0; Ø38 yaka; uçtan 19–20, 22–23, 25–26 mm'de 3 kanal; üstte 10 mm M32 saplama.
+const SPIKE = [[0,0],[11.4,19],[10.8,19],[10.8,20],[12,20],[13.2,22],[12.6,22],[12.6,23],[13.8,23],[15,25],[14.4,25],[14.4,26],[15.6,26],
+  [18,30],[18,31.5],[12.5,34],[12.5,36],[19,38],[19,41.5],[17.5,41.5],[17.5,43],[15.95,43],
+  ...thread(43, 53, 15.34, 15.95), [12.55,53],[12.55,43],[0,43]]; // dişli saplama içi boş (Ø25,1 × 10), koni dolu
+const SP_SHOULDER = 43, TIP_SINK = 3.54;
+const GAP = 0.12; // görsel pay: borunun alt yüzü spike omzuyla aynı düzlemde titreşmesin (kesitte kirlenme) // uç, başlığın altıgen yuvasına ~3,5 mm oturur
+const T = 35;
+// Başlık: y=0 diş ucu, y=53 flanş üstü. Ø38,8 × 3 mm flanş (üstte 1,5 mm pah), Ø31,9 gövde, 20 mm M32 dış diş, içi boş.
+const CAP = [[12.75,0], ...thread(0, 20, 15.34, 15.95), [15.95,20],[15.95,46.3],[19.4,50],[19.4,51.5],[16.9,53],[2.45,53],[2.45,45.8],[12.75,45.8],[12.75,0]];
+// Zemin altlığı (SC'deki "Üst Kapak" gövdesi): zemine oturur, üstteki altıgen yuvaya en alttaki spike'ın ucu girer
+const CUP_H = 6.9;
+// Ø31,9 yüz zeminde, pahlı flânş yüzü yukarıda; altıgen delik bu yüzde (SC'deki gibi), spike ucu buna girer
+const TOPCAP = [[0,0],[15.95,0],[15.95,0.2],[19.4,3.9],[19.4,5.4],[16.9,6.9],[2.45,6.9],[0,0.6]];
+// Boru Ø38; iki ucunda M32×1 iç diş (uzun boruda 30, kısa boruda 10 mm)
+// iç diş SC dosyasındaki gibi: 30 mm boruda her uçta 10 mm, uzun borularda 30 mm
+function TUBE(L){ const tl = L <= 30 ? 10 : 30;
+  const G = (L <= 30 ? [] : [17, 14, 11]).flatMap(a => [[19, L - a], [18, L - a], [18, L - a + 1], [19, L - a + 1]]); // fugalar (SC: üstten 10 mm, 1 mm, 2 mm ara)
+  return [[16.1,0],[19,0], ...G, [19,L],[16.1,L], ...thread(L - tl, L, 15.4, 16.1, 1, true), [15.4,L - tl],[15.4,tl], ...thread(0, tl, 15.4, 16.1, 1, true), [16.1,0]]; }
+
+// Keskin lathe: profilin her parçası ayrı döndürülür, böylece bantlar arasında yumuşatma olmaz (SolidCraft'taki gibi net kademeler)
+const lathe = (pts, seg = 96) => {
+  const parts = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [r1, y1] = pts[i], [r2, y2] = pts[i + 1];
+    if (Math.hypot(r2 - r1, y2 - y1) < 1e-6 || (r1 < 1e-6 && r2 < 1e-6)) continue;
+    const g = new THREE.LatheGeometry([new THREE.Vector2(r1, y1), new THREE.Vector2(r2, y2)], seg);
+    g.deleteAttribute('uv'); parts.push(g.toNonIndexed());
+  }
+  const g = mergeGeometries(parts); g.computeBoundingSphere(); return g;
+};
+// Kenar çizgileri: profilin her kırılma noktasında ince koyu çember (dişler hariç)
+const mEdge = new THREE.LineBasicMaterial({ color: 0x2b2d31, transparent: true, opacity: 0.85 }); clips.push(mEdge);
+const mEdgeSp = mEdge.clone(); clips.push(mEdgeSp);
+const edgeLines = (pts, seg = 128) => {
+  const pos = [], seen = new Set();
+  pts.forEach(([r, y, th]) => {
+    if (th || r < 0.5) return; const k = r.toFixed(3) + '|' + y.toFixed(3); if (seen.has(k)) return; seen.add(k);
+    for (let i = 0; i < seg; i++) { const a = i / seg * Math.PI * 2, b = (i + 1) / seg * Math.PI * 2; pos.push(r * Math.sin(a), y, r * Math.cos(a), r * Math.sin(b), y, r * Math.cos(b)); }
+  });
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); return g;
+};
+const gSpike = lathe(SPIKE), gCap = lathe(CAP), gTop = lathe(TOPCAP);
+const eSpike = edgeLines(SPIKE), eCap = edgeLines(CAP), eTop = edgeLines(TOPCAP);
+const eTube = { 87: edgeLines(TUBE(87)), 137: edgeLines(TUBE(137)), 187: edgeLines(TUBE(187)) };
+const gTube = { 87: lathe(TUBE(87), 96), 137: lathe(TUBE(137), 96), 187: lathe(TUBE(187), 96) };
+const gTubeFloor = (L) => lathe(TUBE(L), 96);
+const gHex = new THREE.CylinderGeometry(2.46, 2.46, 4, 6, 1, true);
+// boru ile spike yakası arasındaki Ø35 omuz bandı (1,5 mm): siyah halka
+const gRing = lathe([[17.5,0],[18.9,0],[18.9,1.5],[17.5,1.5],[17.5,0]]);
+// borudaki 3 fugaya siyah halka
+const gGrooveRing = lathe([[18,0],[18.9,0],[18.9,1],[18,1],[18,0]]);
+const mRing = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.75, metalness: 0 }); clips.push(mRing);
+
+// ---------- Ölçüler ----------
+const FLANGE = 3, TUBES = [87, 137, 187]; // 87 dosyadan; 137 ve 187 aynı mantıkla (+50) türetildi
+// Zemin ayağı: spike ucu zeminde + 30 mm kısa boru (dosyadaki KISA_BORU)
+const FLOOR_L = 30, FLOOR_GAP = CUP_H - TIP_SINK + SP_SHOULDER + FLOOR_L; // altlık 6,9 − uç 3,54 + spike 43 + boru 30 ≈ 76,4
+const W = 600, D = 450, INSET = 45, Y0 = FLOOR_GAP;
+const legsXZ = [[-W/2+INSET, D/2-INSET], [W/2-INSET, D/2-INSET], [-W/2+INSET, -D/2+INSET], [W/2-INSET, -D/2+INSET]];
+
+// KATMAN konfigüratöründeki pahlı raf kenarı: üst yüz tam ölçü, üstte 2 mm yuvarlatma,
+// 5 mm dik bant, sonra kenar alta doğru içe kaçar; alt yüz 27 mm içeride. Köşeler R10.
+// Profil (içe kaçma mm, yükseklik mm) 40 mm raf içindir; burada raf kalınlığına ölçeklenir.
+// KATMAN_STANT.obj'deki raf kenarı (40 mm numune): üstte R2 yuvarlatılmış 8 mm dik bant, altında küçük V fuga,
+// sonra alta doğru içe kaçan pah; alt yüz 12 mm içeride, alt köşe yuvarlatılmış. (içe kaçma mm, yükseklik mm)
+const PROF40 = [[2,40],[1.13,39.8],[0.5,39.35],[0.12,38.7],[0,38],[0,31.5],[0.12,30.9],[0.5,30.4],[1.13,30.1],[2,30],[3.2,27],[2.8,27],
+  [2.25,26.85],[1.9,26.5],[1.75,26],[1.8,25.6],[9.7,1.6],[10.15,0.85],[10.9,0.25],[12,0]];
+// 35 mm rafa uyarlama: üstteki 14,4 mm'lik kenar detayı aynen kalır, alttaki pah yüksekliği ölçeklenir
+const SHELF_PROF = PROF40.map(([d, z]) => [d, z >= 25.6 ? T - (40 - z) : z * (T - 14.4) / 25.6]);
+function shelfRing(d, cs = 10) {
+  const r = 10, hw = W / 2 - d, hd = D / 2 - d, pts = [];
+  [[hw - r, hd - r, 0], [-hw + r, hd - r, 90], [-hw + r, -hd + r, 180], [hw - r, -hd + r, 270]].forEach(([cx, cz, a0]) => {
+    for (let i = 0; i <= cs; i++) { const t = (a0 + 90 * i / cs) * Math.PI / 180; pts.push([cx + r * Math.cos(t), cz + r * Math.sin(t)]); }
+  });
+  return pts;
+}
+function shelfGeo() {
+  const parts = [];
+  // yan yüzler: her profil bandı ayrı (bant içinde çevre boyunca yumuşak, bantlar arası keskin)
+  for (let L = 0; L < SHELF_PROF.length - 1; L++) {
+    const [d1, y1] = SHELF_PROF[L], [d2, y2] = SHELF_PROF[L + 1];
+    const a = shelfRing(d1), b = shelfRing(d2), n = a.length, pos = [], idx = [];
+    for (let i = 0; i < n; i++) { pos.push(a[i][0], y1, a[i][1]); pos.push(b[i][0], y2, b[i][1]); }
+    for (let i = 0; i < n; i++) { const j = (i + 1) % n, p = 2 * i, q = 2 * j; idx.push(p, q, p + 1, q, q + 1, p + 1); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+    g.computeVertexNormals(); parts.push(g);
+  }
+  const face = (d, y, up) => {
+    const s = new THREE.Shape(shelfRing(d).map(([x, z]) => new THREE.Vector2(x, -z)));
+    for (const [x, z] of legsXZ) { const h = new THREE.Path(); h.absarc(x, -z, 16.1, 0, Math.PI * 2, true); s.holes.push(h); }
+    const g = new THREE.ShapeGeometry(s, 40); g.rotateX(-Math.PI / 2);
+    if (!up) { g.rotateX(Math.PI); g.scale(1, 1, -1); const ix = g.index.array; for (let i = 0; i < ix.length; i += 3) { const t = ix[i]; ix[i] = ix[i + 2]; ix[i + 2] = t; } g.computeVertexNormals(); }
+    g.translate(0, y, 0); return g;
+  };
+  parts.push(face(0, T, true), face(SHELF_PROF[SHELF_PROF.length - 1][0], 0, false));
+  // ayak delikleri
+  for (const [x, z] of legsXZ) {
+    const c = new THREE.CylinderGeometry(16.1, 16.1, T, 48, 1, true); c.scale(-1, 1, 1);
+    const ix = c.index.array; for (let i = 0; i < ix.length; i += 3) { const t = ix[i]; ix[i] = ix[i + 2]; ix[i + 2] = t; }
+    c.computeVertexNormals(); c.translate(x, T / 2, z); parts.push(c.toNonIndexed());
+  }
+  const g = mergeGeometries(parts.map(p => { const q = p.index ? p.toNonIndexed() : p; q.deleteAttribute('uv'); return q; }));
+  // doku koordinatları: üst/alt yüz düz izdüşüm (damar raf boyunca, x yönünde); ön/arka kenarda boyuna damar; yanlarda uç kesit
+  const P = g.attributes.position, N = g.attributes.normal, uv = new Float32Array(P.count * 2);
+  for (let i = 0; i < P.count; i++) {
+    const x = P.getX(i), y = P.getY(i), z = P.getZ(i), nx = N.getX(i), ny = N.getY(i), nz = N.getZ(i);
+    let u, v;
+    if (Math.abs(ny) > 0.85) { u = x / W + 0.5; v = z / D + 0.5; }
+    else if (Math.abs(nz) >= Math.abs(nx)) { u = x / W + 0.5; v = (nz > 0 ? 0.985 : 0.015) - (nz > 0 ? 1 : -1) * (T - y) / D * 0.9; }
+    else { u = (nx > 0 ? 0.99 : 0.01) - (nx > 0 ? 1 : -1) * (T - y) / W * 0.25; v = z / D + 0.5; }
+    uv[i * 2] = u; uv[i * 2 + 1] = v;
+  }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); return g;
+}
+const gShelf = shelfGeo();
+// Raf kenarındaki 3 mm fugaya oturan metal çubuk: fuganın yüksekliğinde (27–30, 40 mm numune ölçüsü), dış yüzü kenarla aynı hizada
+function stripGeo() {
+  const zmap = z => T - (40 - z);
+  // fuganın tamamını doldurur: alttaki pahın başladığı yerden (25,7) üstteki bandın yuvarlatmasına (30,8) kadar
+  const prof = [[1.8, 25.7], [1.8, 30.8], [3.3, 30.8], [3.3, 25.7], [1.8, 25.7]].map(([d, z]) => [d, zmap(z)]);
+  const parts = [];
+  for (let L = 0; L < prof.length - 1; L++) {
+    const [d1, y1] = prof[L], [d2, y2] = prof[L + 1];
+    const a = shelfRing(d1), b = shelfRing(d2), n = a.length, pos = [], idx = [];
+    for (let i = 0; i < n; i++) { pos.push(a[i][0], y1, a[i][1]); pos.push(b[i][0], y2, b[i][1]); }
+    for (let i = 0; i < n; i++) { const j = (i + 1) % n, p = 2 * i, q = 2 * j; idx.push(p, q, p + 1, q, q + 1, p + 1); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+    g.computeVertexNormals(); parts.push(g.toNonIndexed());
+  }
+  return mergeGeometries(parts);
+}
+const gStrip = stripGeo();
+const mStrip = new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.45, metalness: 0.6, side: THREE.DoubleSide }); clips.push(mStrip);
+
+// ---------- Montaj ----------
+// Her nesne: mesh, taban y, patlatma sırası (alttan)
+const items = [];
+// Kesit dolgusu: kesitte parçaların içi boş kabuk gibi görünmesin diye arka yüzler düz dolgu rengiyle çizilir
+// (dolu malzeme dolu görünür; boru deliği, başlığın iç boşluğu gibi gerçek boşluklar boş kalır)
+const mCutMetal = new THREE.MeshBasicMaterial({ color: 0x8a8e94, side: THREE.BackSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }); clips.push(mCutMetal);
+const mCutWood  = new THREE.MeshBasicMaterial({ color: 0x5b3b25, side: THREE.BackSide }); clips.push(mCutWood);
+const cutFills = [], solidMats = [mTube, mSpike, mWood];
+function add(mesh, y, order, group) {
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  if (mesh.isMesh && solidMats.includes(mesh.material)) { const f = new THREE.Mesh(mesh.geometry, mesh.material === mWood ? mCutWood : mCutMetal); f.visible = false; mesh.add(f); cutFills.push(f); }
+  mesh.userData = { y, order, group }; mesh.position.y = y; scene.add(mesh); items.push(mesh); return mesh;
+}
+// zemin
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(1600, 1300), mFloor); floor.rotation.x = -Math.PI / 2; floor.position.y = -0.2; scene.add(floor);
+// zemin ayağı: zemin altlığı + spike (ucu altlığın altıgen yuvasında) + kısa boru, en alt rafın başlığına vidalanır
+const gTF = gTubeFloor(FLOOR_L), eTF = edgeLines(TUBE(FLOOR_L));
+const SY0 = CUP_H - TIP_SINK; // en alttaki spike'ın ucu
+for (const [x, z] of legsXZ) {
+  const cup = add(new THREE.Mesh(gTop, mCap), 0, 0, 'metal'); cup.position.x = x; cup.position.z = z; cup.add(new THREE.LineSegments(eTop, mEdge));
+  const hx = add(new THREE.Mesh(gHex, mHex), CUP_H - 2.05, 0, 'metal'); hx.position.x = x; hx.position.z = z;
+  const sp = add(new THREE.Mesh(gSpike, mSpike), SY0, 0.45, 'metal'); sp.position.x = x; sp.position.z = z; sp.add(new THREE.LineSegments(eSpike, mEdgeSp));
+  const rg = add(new THREE.Mesh(gRing, mRing), SY0 + 41.5, 0.45, 'metal'); rg.position.x = x; rg.position.z = z;
+  const tb = add(new THREE.Mesh(gTF, mTube), SY0 + SP_SHOULDER + GAP, 0.7, 'metal'); tb.position.x = x; tb.position.z = z; tb.add(new THREE.LineSegments(eTF, mEdge));
+}
+const shelfTops = []; let yb = Y0;
+const woodMeshes = [];
+for (let i = 0; i < 4; i++) {
+  const sh = new THREE.Mesh(gShelf, mWood);
+  sh.add(new THREE.Mesh(gStrip, mStrip));
+  add(sh, yb + 0.0, i * 4 + 1, 'wood'); woodMeshes.push(sh);
+  sh.position.y = yb; sh.userData.y = yb;
+  const Ts = yb + T; shelfTops.push(Ts);
+  for (const [x, z] of legsXZ) {
+    const cap = add(new THREE.Mesh(gCap, mCap), Ts + FLANGE - 53, i * 4 + 2, 'metal');
+    cap.position.x = x; cap.position.z = z; cap.add(new THREE.LineSegments(eCap, mEdge));
+    const hex = add(new THREE.Mesh(gHex, mHex), Ts + FLANGE - 2.05, i * 4 + 2, 'metal'); hex.position.x = x; hex.position.z = z;
+  }
+  if (i < 3) {
+    const L = TUBES[i];
+    for (const [x, z] of legsXZ) {
+      const y0 = Ts + FLANGE - TIP_SINK;
+      const sp = add(new THREE.Mesh(gSpike, mSpike), y0, i * 4 + 3, 'metal'); sp.position.x = x; sp.position.z = z; sp.add(new THREE.LineSegments(eSpike, mEdgeSp));
+      const rg = add(new THREE.Mesh(gRing, mRing), y0 + 41.5, i * 4 + 3, 'metal'); rg.position.x = x; rg.position.z = z;
+      const tb = add(new THREE.Mesh(gTube[L], mTube), y0 + SP_SHOULDER + GAP, i * 4 + 4, 'metal'); tb.position.x = x; tb.position.z = z; tb.add(new THREE.LineSegments(eTube[L], mEdge));
+      for (const g of [17, 14, 11]) { const gr = add(new THREE.Mesh(gGrooveRing, mRing), y0 + SP_SHOULDER + L - g, i * 4 + 4, 'metal'); gr.position.x = x; gr.position.z = z; }
+    }
+    yb = Ts + FLANGE - TIP_SINK + SP_SHOULDER + L;
+  }
+}
+const topY = shelfTops[3] + FLANGE;
+
+// ---------- Ölçü etiketleri ----------
+const dims = [];
+function dim(text, y) { const el = document.createElement('div'); el.className = 'lbl'; el.textContent = text; labelsEl.appendChild(el); dims.push({ el, y }); }
+dim(`zemin ${FLOOR_GAP.toFixed(1).replace('.', ',')} mm`, FLOOR_GAP / 2);
+for (let i = 0; i < 3; i++) {
+  const a = shelfTops[i], b = shelfTops[i + 1] - T;
+  dim(`${Math.round(b - a)} mm`, (a + b) / 2);
+}
+dim(`raf ${T.toFixed(1).replace('.', ',')}`, shelfTops[3] - T / 2);
+const dimX = -W / 2 - 18, dimZ = D / 2 - INSET;
+let showDims = true;
+
+// ---------- Görünüm ----------
+const legX = legsXZ[0][0], legZ = legsXZ[0][1];
+const views = {
+  rack: { pos: new THREE.Vector3(1250, 860, 1500), tgt: new THREE.Vector3(0, topY * 0.42, 0) },
+  spike: { pos: new THREE.Vector3(legX - 45, shelfTops[1] + FLANGE + 40, legZ + 190), tgt: new THREE.Vector3(legX, shelfTops[1] + FLANGE + 26, legZ) },
+  leg:  { pos: new THREE.Vector3(legX - 430, shelfTops[1] + 200, legZ + 560), tgt: new THREE.Vector3(legX, shelfTops[1] + 30, legZ) },
+};
+let anim = null;
+function goView(v) {
+  const s = views[v]; anim = { t: 0, p0: camera.position.clone(), t0: controls.target.clone(), p1: s.pos, t1: s.tgt };
+}
+camera.position.copy(views.rack.pos); controls.target.copy(views.rack.tgt);
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+// ---------- Patlatma ----------
+let explode = 0, explodeTarget = 0;
+function applyExplode() {
+  for (const m of items) m.position.y = m.userData.y + explode * 34 * m.userData.order;
+}
+
+// ---------- Renkler (KATMAN konfigüratöründeki seçenekler) ----------
+const WOODS = {
+  ceviz: { label: 'Ceviz', c: '#5E3E2A', r: 0.68, pal: { top: '#5E3E2A', grain: '#24150C', hi: '#8A5F40', streak: '#704B33', edge: '#2C1B10' }, seed: 7, kind: 'ceviz' },
+  mese:  { label: 'Meşe', c: '#C6A47A', r: 0.68, pal: { top: '#C6A47A', grain: '#81603D', hi: '#E0C59E', streak: '#B08B5E', edge: '#8C6B47' }, seed: 3, kind: 'mese' },
+  siyah: { label: 'Siyah Lake', c: '#2C2C2B', r: 0.35 },
+  beyaz: { label: 'Beyaz Lake', c: '#EDEBE6', r: 0.35 },
+};
+const METALS = {
+  siyah: { label: 'Mat Siyah', c: '#2B2B2B', ui: '#2B2B2B', r: 0.7, m: 0.3, edge: '#8A8E94' },
+  beyaz: { label: 'Beyaz', c: '#E4E2DD', ui: '#E4E2DD', r: 0.5, m: 0.0, edge: '#2b2d31' },
+  krom:  { label: 'Krom', c: '#E0E2E5', ui: '#C3C7CB', r: 0.6, m: 0.55, edge: '#2b2d31' },
+};
+const SPIKES = { siyah: { ...METALS.siyah, label: 'Siyah' }, beyaz: METALS.beyaz, krom: METALS.krom };
+// Fuga çubuğu renkleri
+const STRIPS = {
+  krom:   { label: 'Krom',   c: '#E0E2E5', ui: '#C3C7CB', r: 0.35, m: 0.85 },
+  siyah:  { label: 'Siyah',  c: '#2B2B2B', ui: '#2B2B2B', r: 0.5,  m: 0.6 },
+  pirinc: { label: 'Pirinç', c: '#C9A24A', ui: '#B8913D', r: 0.35, m: 0.9 },
+};
+const colorState = { wood: 'ceviz', leg: 'krom', spike: 'krom', strip: 'siyah' };
+try { Object.assign(colorState, JSON.parse(localStorage.getItem('katman3d-renk') || '{}')); } catch (e) {}
+// Prosedürel masif ahşap dokusu: lamel lamel yapıştırılmış raf, boyuna damar, katedral desen (ceviz), öz ışınları (meşe), gözenekler
+const woodTex = {};
+function makeWood(w) {
+  if (woodTex[w.kind]) return woodTex[w.kind];
+  const CW = 2048, CH = 1536, cv = document.createElement('canvas'); cv.width = CW; cv.height = CH;
+  const bc = document.createElement('canvas'); bc.width = CW; bc.height = CH;
+  const g = cv.getContext('2d'), b = bc.getContext('2d');
+  let sd = w.seed * 9301 + 49297; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  const pal = w.pal, col = h => new THREE.Color(h);
+  const shade = (h, f) => { const c = col(h); c.offsetHSL((R() - 0.5) * 0.012, (R() - 0.5) * 0.06, f); return '#' + c.getHexString(); };
+  b.fillStyle = '#808080'; b.fillRect(0, 0, CW, CH);
+  // lameller (derinlik boyunca 45–75 mm şeritler)
+  const pxmm = CH / D; let y = 0; const lam = [];
+  while (y < CH) { const h = (45 + R() * 30) * pxmm; lam.push([y, Math.min(CH, y + h)]); y += h; }
+  lam.forEach(([a, c], li) => {
+    const base = shade(pal.top, (R() - 0.5) * (w.kind === 'ceviz' ? 0.07 : 0.06));
+    g.fillStyle = base; g.fillRect(0, a, CW, c - a);
+    // geniş ton bantları
+    for (let k = 0; k < 5; k++) {
+      const yy = a + R() * (c - a), hh = (c - a) * (0.15 + R() * 0.35);
+      g.globalAlpha = 0.10 + R() * 0.12; g.fillStyle = R() > 0.5 ? pal.hi : pal.streak; g.fillRect(0, yy - hh / 2, CW, hh);
+    }
+    g.globalAlpha = 1;
+    // boyuna damar çizgileri
+    const n = Math.round((c - a) / (w.kind === 'ceviz' ? 5 : 4));
+    for (let j = 0; j < n; j++) {
+      const y0 = a + R() * (c - a), amp = 2 + R() * 7, lamb = 300 + R() * 900, ph = R() * 6.28, lw = 0.6 + R() * 2.2;
+      const rc = R(), cc = rc > 0.55 ? pal.grain : rc > 0.25 ? pal.streak : pal.hi;
+      g.strokeStyle = cc; g.globalAlpha = 0.08 + R() * 0.3; g.lineWidth = lw; g.beginPath();
+      b.strokeStyle = rc > 0.55 ? '#5a5a5a' : '#8c8c8c'; b.globalAlpha = 0.5; b.lineWidth = lw; b.beginPath();
+      for (let x = 0; x <= CW; x += 16) { const yy = Math.max(a + 1, Math.min(c - 1, y0 + amp * Math.sin(x / lamb + ph) + 1.2 * Math.sin(x / 37 + ph * 3))); if (x === 0) { g.moveTo(x, yy); b.moveTo(x, yy); } else { g.lineTo(x, yy); b.lineTo(x, yy); } }
+      g.stroke(); b.stroke();
+    }
+    // katedral (ceviz) / taçlı damar (meşe)
+    const nArch = w.kind === 'ceviz' ? 1 + Math.floor(R() * 2) : Math.floor(R() * 2);
+    for (let q = 0; q < nArch; q++) {
+      const cx = R() * CW, len = (250 + R() * 500), yc = a + (c - a) * (0.3 + R() * 0.4), dir = R() > 0.5 ? 1 : -1, hh = (c - a) * (0.25 + R() * 0.2);
+      for (let k = 0; k < 6; k++) {
+        const L = len * (1 - k * 0.14), H = hh * (1 - k * 0.15);
+        g.strokeStyle = k % 2 ? pal.streak : pal.grain; g.globalAlpha = 0.22 + 0.05 * k; g.lineWidth = 1 + R() * 1.6; g.beginPath();
+        for (let x = cx - L; x <= cx + L; x += 8) { const u = (x - cx) / L; const yy = Math.max(a + 1, Math.min(c - 1, yc + dir * H * (1 - u * u) - dir * H * 0.5)); x === cx - L ? g.moveTo(x, yy) : g.lineTo(x, yy); }
+        g.stroke();
+      }
+    }
+    // öz ışınları (meşe): açık, kısa lekeler
+    if (w.kind === 'mese') for (let q = 0; q < 70; q++) { g.globalAlpha = 0.12 + R() * 0.18; g.fillStyle = pal.hi; const x = R() * CW, yy = a + R() * (c - a); g.beginPath(); g.ellipse(x, yy, 6 + R() * 22, 0.8 + R() * 1.6, 0, 0, 6.28); g.fill(); }
+    // gözenekler
+    for (let q = 0; q < (c - a) * 6; q++) { const x = R() * CW, yy = a + R() * (c - a), l = 3 + R() * 12; g.globalAlpha = 0.18 + R() * 0.25; g.fillStyle = pal.grain; g.fillRect(x, yy, l, 1); b.globalAlpha = 0.6; b.fillStyle = '#3c3c3c'; b.fillRect(x, yy, l, 1); }
+    // lamel birleşim çizgisi (çok ince)
+    g.globalAlpha = 0.35; g.fillStyle = pal.edge; g.fillRect(0, c - 1, CW, 1); g.globalAlpha = 1;
+  });
+  const mk2 = (c, srgb) => { const t = new THREE.CanvasTexture(c); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; return t; };
+  return (woodTex[w.kind] = { map: mk2(cv, true), bump: mk2(bc, false) });
+}
+function applyColors() {
+  const w = WOODS[colorState.wood] || WOODS.ceviz, l = METALS[colorState.leg] || METALS.krom, sp = SPIKES[colorState.spike] || SPIKES.krom;
+  if (w.pal) { const t = makeWood(w); mWood.map = t.map; mWood.bumpMap = t.bump; mWood.bumpScale = 0.6; mWood.color.setScalar(w.kind === 'mese' ? 0.7 : 0.8); }
+  else { mWood.map = null; mWood.bumpMap = null; mWood.color.set(w.c).multiplyScalar(0.85); }
+  mWood.roughness = w.r; mWood.needsUpdate = true; // sahne ışığı açık; konfigüratördeki tona yaklaştırmak için hafif koyulaştırıldı
+  mTube.color.set(l.c); mTube.roughness = l.r; mTube.metalness = l.m; mEdge.color.set(l.edge);
+  mSpike.color.set(sp.c); mSpike.roughness = sp.r; mSpike.metalness = sp.m; mEdgeSp.color.set(sp.edge);
+  const st = STRIPS[colorState.strip] || STRIPS.siyah; mStrip.color.set(st.c); mStrip.roughness = st.r; mStrip.metalness = st.m;
+  $('swWood').style.background = w.c; $("swTube").style.background = $("swCap").style.background = $("swCup").style.background = l.ui; $('swSpike').style.background = sp.ui;
+  try { localStorage.setItem('katman3d-renk', JSON.stringify(colorState)); } catch (e) {}
+}
+function chips(elId, set, key) {
+  const el = $(elId);
+  Object.entries(set).forEach(([k, o]) => {
+    const b = document.createElement('button'); b.className = 'chip'; b.type = 'button';
+    const i = document.createElement('i'); i.style.background = o.ui || o.c; b.append(i, document.createTextNode(o.label));
+    b.setAttribute('aria-pressed', colorState[key] === k ? 'true' : 'false');
+    b.onclick = () => { colorState[key] = k; [...el.children].forEach(c => c.setAttribute('aria-pressed', c === b ? 'true' : 'false')); applyColors(); };
+    el.appendChild(b);
+  });
+}
+
+// ---------- Düğmeler ----------
+const $ = id => document.getElementById(id);
+chips('cWood', WOODS, 'wood'); chips('cLeg', METALS, 'leg'); chips('cSpike', SPIKES, 'spike'); chips('cStrip', STRIPS, 'strip'); applyColors();
+function press(btn, on) { btn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+const VB = ['vRack', 'vLeg', 'vSpike'], VV = { vRack: 'rack', vLeg: 'leg', vSpike: 'spike' };
+VB.forEach(id => { $(id).onclick = () => { VB.forEach(k => press($(k), k === id)); goView(VV[id]); }; });
+$('tExplode').onclick = e => { explodeTarget = explodeTarget ? 0 : 1; press(e.currentTarget, !!explodeTarget); };
+$('tSection').onclick = e => {
+  const on = e.currentTarget.getAttribute('aria-pressed') !== 'true'; press(e.currentTarget, on);
+  clipPlane.constant = legZ; for (const m of clips) { m.clippingPlanes = on ? [clipPlane] : []; m.needsUpdate = true; }
+  for (const m of solidMats) { m.side = on ? THREE.FrontSide : THREE.DoubleSide; m.needsUpdate = true; }
+  cutFills.forEach(f => f.visible = on);
+  if (on) { press($('vLeg'), true); press($('vRack'), false); goView('leg'); }
+};
+$('tDims').onclick = e => { showDims = !showDims; press(e.currentTarget, showDims); };
+$('tWood').onclick = e => { const on = e.currentTarget.getAttribute('aria-pressed') !== 'true'; press(e.currentTarget, on); woodMeshes.forEach(w => w.visible = on); };
+
+// ---------- Döngü ----------
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage); resize();
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const v3 = new THREE.Vector3();
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (anim) {
+    anim.t = Math.min(1, anim.t + (reduce ? 1 : dt / 0.9)); const k = ease(anim.t);
+    camera.position.lerpVectors(anim.p0, anim.p1, k); controls.target.lerpVectors(anim.t0, anim.t1, k);
+    if (anim.t >= 1) anim = null;
+  }
+  if (explode !== explodeTarget) {
+    explode += (explodeTarget - explode) * (reduce ? 1 : Math.min(1, dt * 5));
+    if (Math.abs(explode - explodeTarget) < 0.002) explode = explodeTarget;
+    applyExplode();
+  }
+  controls.update();
+  { const dist = camera.position.distanceTo(controls.target); mEdge.opacity = mEdgeSp.opacity = THREE.MathUtils.clamp(1.05 - (dist - 250) / 900, 0.12, 0.9); }
+  renderer.render(scene, camera);
+  const rect = stage.getBoundingClientRect();
+  for (const d of dims) {
+    v3.set(dimX, d.y, dimZ).project(camera);
+    const x = (v3.x + 1) / 2 * rect.width, y = (1 - v3.y) / 2 * rect.height;
+    d.el.style.left = x + 'px'; d.el.style.top = y + 'px';
+    d.el.classList.toggle('off', !showDims || explode > 0.05 || v3.z > 1);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
